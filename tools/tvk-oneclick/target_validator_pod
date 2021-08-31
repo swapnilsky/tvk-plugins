@@ -1,0 +1,1672 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T09:53:28Z"
+    generateName: k8s-triliovault-admission-webhook-5dbb8b877b-
+    labels:
+      app: k8s-triliovault-admission-webhook
+      app.kubernetes.io/instance: k8s-triliovault-admission-webhook
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      pod-template-hash: 5dbb8b877b
+      release: tvm-default
+      triliovault.trilio.io/owner: tvm
+    name: k8s-triliovault-admission-webhook-5dbb8b877b-rhlh2
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: k8s-triliovault-admission-webhook-5dbb8b877b
+      uid: 42c73b21-5132-47fc-b9e3-d16e30ce81ff
+    resourceVersion: "1608387"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-admission-webhook-5dbb8b877b-rhlh2
+    uid: 3eaf4f50-6ef4-4a8f-bb7a-8593ea215e10
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - args:
+      - --tlsCertFile=/etc/webhook/certs/tls.crt
+      - --tlsKeyFile=/etc/webhook/certs/tls.key
+      env:
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: APP_SCOPE
+        value: Cluster
+      - name: WEBHOOK_DEPLOYMENT
+        value: k8s-triliovault-admission-webhook
+      - name: ADMISSION_VALIDATION_CONFIG
+        value: k8s-triliovault-validating-webhook-default
+      - name: ADMISSION_MUTATION_CONFIG
+        value: k8s-triliovault-mutating-webhook-default
+      image: eu.gcr.io/amazing-chalice-243510/trilio-admission-webhook:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /ping
+          port: 9443
+          scheme: HTTPS
+        initialDelaySeconds: 60
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 2
+      name: triliovault-admission-webhook
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /ping
+          port: 9443
+          scheme: HTTPS
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        successThreshold: 1
+        timeoutSeconds: 1
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /etc/webhook/certs
+        name: webhook-certs
+        readOnly: true
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - env:
+      - name: IMAGE_PULL_POLICY
+        value: IfNotPresent
+      - name: ADMISSION_MUTATION_CONFIG
+        value: k8s-triliovault-mutating-webhook-default
+      - name: ADMISSION_VALIDATION_CONFIG
+        value: k8s-triliovault-validating-webhook-default
+      - name: WEBHOOK_SERVICE
+        value: k8s-triliovault-admission-webhook
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: SECRET_NAME
+        value: k8s-triliovault-webhook-certs
+      - name: WEBHOOK_DEPLOYMENT
+        value: k8s-triliovault-admission-webhook
+      - name: RELEASE
+        value: tvm-default
+      - name: APP_SCOPE
+        value: Cluster
+      - name: RESOURCE_CLEANER_CRON_NAME
+        value: k8s-triliovault-resource-cleaner
+      - name: RESOURCE_CLEANER_CRON_SCHEDULE
+        value: '*/30 * * * *'
+      - name: RELATED_IMAGE_RESOURCE_CLEANER
+        value: eu.gcr.io/amazing-chalice-243510/resource-cleaner:v2.1.1-alpha
+      - name: WEB_SERVICE
+        value: k8s-triliovault-web
+      - name: BACKEND_SERVICE
+        value: k8s-triliovault-web-backend
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      image: eu.gcr.io/amazing-chalice-243510/trilio-webhook-init:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: webhook-init
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    nodeName: trilio-test2-default-pool-84zs8
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: webhook-certs
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-webhook-certs
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:54:16Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:54:25Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:54:25Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://e15ad0b6dca280ac65b02aea378c26df8d201cf58f13c8b4c72b79bbe6ac97ad
+      image: eu.gcr.io/amazing-chalice-243510/trilio-admission-webhook:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/trilio-admission-webhook@sha256:c9ba848286d0e75c131ba119ea668d469e062d170a7009f3edc8df5f4cea6284
+      lastState: {}
+      name: triliovault-admission-webhook
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:54:17Z"
+    hostIP: 10.122.0.4
+    initContainerStatuses:
+    - containerID: docker://f1a0349f03d1c3ff9e06dcc18980d1f570f917508c080c6bf3c11e54f9b526f7
+      image: eu.gcr.io/amazing-chalice-243510/trilio-webhook-init:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/trilio-webhook-init@sha256:6ea3de1dfc24a85f9dcb6c9714e6b2c0c6b40aae56e8e004309c8b28b6ef9db0
+      lastState: {}
+      name: webhook-init
+      ready: true
+      restartCount: 0
+      state:
+        terminated:
+          containerID: docker://f1a0349f03d1c3ff9e06dcc18980d1f570f917508c080c6bf3c11e54f9b526f7
+          exitCode: 0
+          finishedAt: "2021-08-26T09:54:16Z"
+          reason: Completed
+          startedAt: "2021-08-26T09:53:32Z"
+    phase: Running
+    podIP: 10.244.2.63
+    podIPs:
+    - ip: 10.244.2.63
+    qosClass: Burstable
+    startTime: "2021-08-26T09:53:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T09:53:28Z"
+    generateName: k8s-triliovault-control-plane-9cff6566-
+    labels:
+      app: k8s-triliovault-control-plane
+      app.kubernetes.io/instance: k8s-triliovault-control-plane
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      pod-template-hash: 9cff6566
+      rel: tvm-default
+      triliovault.trilio.io/owner: tvm
+    name: k8s-triliovault-control-plane-9cff6566-jf797
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: k8s-triliovault-control-plane-9cff6566
+      uid: 345b7d21-6330-48bd-b48e-3b7539f75015
+    resourceVersion: "1608277"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-control-plane-9cff6566-jf797
+    uid: d1a0a54b-a2a4-4bd8-8a1c-76a673e670d1
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - env:
+      - name: IMAGE_PULL_POLICY
+        value: IfNotPresent
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: RELEASE_TAG
+        value: v2.1.1-alpha
+      - name: APP_SCOPE
+        value: Cluster
+      - name: TVK_CONFIG
+        value: k8s-triliovault-config
+      - name: WEB_SESSION_ACCESS_TTL
+        value: 1h
+      - name: WEB_SESSION_REFRESH_TTL
+        value: 24h
+      - name: RELATED_IMAGE_METAMOVER
+        value: eu.gcr.io/amazing-chalice-243510/metamover:v2.1.1-alpha
+      - name: RELATED_IMAGE_DATAMOVER
+        value: eu.gcr.io/amazing-chalice-243510/datamover:v2.1.1-alpha
+      - name: RELATED_IMAGE_DATASTORE_ATTACHER
+        value: eu.gcr.io/amazing-chalice-243510/datastore-attacher:v2.1.1-alpha
+      - name: RELATED_IMAGE_BACKUP_SCHEDULER
+        value: eu.gcr.io/amazing-chalice-243510/backup-scheduler:v2.1.1-alpha
+      - name: RELATED_IMAGE_BACKUP_CLEANER
+        value: eu.gcr.io/amazing-chalice-243510/backup-cleaner:v2.1.1-alpha
+      - name: RELATED_IMAGE_BACKUP_RETENTION
+        value: eu.gcr.io/amazing-chalice-243510/backup-retention:v2.1.1-alpha
+      - name: RELATED_IMAGE_TARGET_BROWSER
+        value: eu.gcr.io/amazing-chalice-243510/target-browser:v2.1.1-alpha
+      - name: RELATED_IMAGE_HOOK
+        value: eu.gcr.io/amazing-chalice-243510/hook-executor:v2.1.1-alpha
+      - name: RELATED_IMAGE_RESOURCE_CLEANER
+        value: eu.gcr.io/amazing-chalice-243510/resource-cleaner:v2.1.1-alpha
+      - name: POLLING_PERIOD
+        value: 300s
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      image: eu.gcr.io/amazing-chalice-243510/control-plane:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: triliovault-control-plane
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /opt/tvk/config
+        name: tvk-config
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    - env:
+      - name: IMAGE_PULL_POLICY
+        value: IfNotPresent
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: RELEASE_TAG
+        value: v2.1.1-alpha
+      - name: APP_SCOPE
+        value: Cluster
+      - name: TVK_CONFIG
+        value: k8s-triliovault-config
+      image: eu.gcr.io/amazing-chalice-243510/analyzer:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: triliovault-analyzer
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs8
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - configMap:
+        defaultMode: 420
+        name: k8s-triliovault-config
+      name: tvk-config
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://a69da9dd29261918687dbf7857ca9a3b21772e25c01c92f072c80d4b095296a1
+      image: eu.gcr.io/amazing-chalice-243510/analyzer:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/analyzer@sha256:200aa84b0bc385244142297606fe6cb158f8bc7adbb79674337a7b500e73e383
+      lastState: {}
+      name: triliovault-analyzer
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:32Z"
+    - containerID: docker://a2db905ebedfe0fca63afddc49319b8e8a8803665aac830dc5c605ad4fcdb89e
+      image: eu.gcr.io/amazing-chalice-243510/control-plane:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/control-plane@sha256:9f7fefdb59ac35ee196e868b2fbe5408957867d8774df912f80561d04c84c0c9
+      lastState: {}
+      name: triliovault-control-plane
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:31Z"
+    hostIP: 10.122.0.4
+    phase: Running
+    podIP: 10.244.2.101
+    podIPs:
+    - ip: 10.244.2.101
+    qosClass: Burstable
+    startTime: "2021-08-26T09:53:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      prometheus.io/path: /metrics
+      prometheus.io/port: "8080"
+      prometheus.io/scrape: "true"
+    creationTimestamp: "2021-08-26T09:53:28Z"
+    generateName: k8s-triliovault-exporter-6b8844d4d4-
+    labels:
+      app: k8s-triliovault-exporter
+      app.kubernetes.io/instance: k8s-triliovault-exporter
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      pod-template-hash: 6b8844d4d4
+      rel: tvm-default
+      triliovault.trilio.io/owner: tvm
+    name: k8s-triliovault-exporter-6b8844d4d4-bqfnp
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: k8s-triliovault-exporter-6b8844d4d4
+      uid: afdde3c5-8411-49af-aca2-c5427b68f0e2
+    resourceVersion: "1608271"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-exporter-6b8844d4d4-bqfnp
+    uid: 0630c655-106f-45e2-b4c4-7d3a078e34b5
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - env:
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: RELEASE_TAG
+        value: v2.1.1-alpha
+      - name: APP_SCOPE
+        value: Cluster
+      image: eu.gcr.io/amazing-chalice-243510/exporter:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: triliovault-exporter
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs8
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://1e4157d0cc6e7273d32f10f38cf8d9b6d6f4fe14dca9c41c313016b15b35acec
+      image: eu.gcr.io/amazing-chalice-243510/exporter:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/exporter@sha256:1e8f84d5469d8a46aadb4260668d2a59bd46635fd64dfa15c63843ef464d1e82
+      lastState: {}
+      name: triliovault-exporter
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:32Z"
+    hostIP: 10.122.0.4
+    phase: Running
+    podIP: 10.244.2.34
+    podIPs:
+    - ip: 10.244.2.34
+    qosClass: Burstable
+    startTime: "2021-08-26T09:53:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T09:53:28Z"
+    generateName: k8s-triliovault-ingress-gateway-6bcb885d8c-
+    labels:
+      app: k8s-triliovault-ingress-gateway
+      app.kubernetes.io/instance: k8s-triliovault-ingress-gateway
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      pod-template-hash: 6bcb885d8c
+      release: tvm-default
+      triliovault.trilio.io/owner: tvm
+    name: k8s-triliovault-ingress-gateway-6bcb885d8c-7k582
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: k8s-triliovault-ingress-gateway-6bcb885d8c
+      uid: 0f5af460-2c13-4d62-8c66-18fee35b0277
+    resourceVersion: "1608244"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-ingress-gateway-6bcb885d8c-7k582
+    uid: a294ffa7-bfa2-48b2-8f28-fe9d20c04aa6
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - command:
+      - /bin/sh
+      - -c
+      - /opt/tvk/ingress-init --secret=k8s-triliovault-ingress-tls-certs && /opt/tvk/nginx-ingress
+        -nginx-plus=false -nginx-reload-timeout=20000 -enable-app-protect=false -default-server-tls-secret=$(POD_NAMESPACE)/k8s-triliovault-ingress-tls-certs
+        -ingress-class=nginx -use-ingress-class-only=false -nginx-debug=false -v=1
+        -nginx-status=false -report-ingress-status -enable-leader-election=false -enable-prometheus-metrics=false
+        -enable-custom-resources=false -ready-status=false -enable-latency-metrics=false
+        -nginx-configmaps=$(POD_NAMESPACE)/k8s-triliovault-ingress-config
+      env:
+      - name: POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+      - name: INGRESS_SERVICE
+        value: k8s-triliovault-ingress-gateway
+      - name: APP_SCOPE
+        value: Cluster
+      image: eu.gcr.io/amazing-chalice-243510/ingress-controller:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: ingress-controller
+      ports:
+      - containerPort: 8080
+        name: http
+        protocol: TCP
+      - containerPort: 8443
+        name: https
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - NET_BIND_SERVICE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs3
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:32Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:32Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://1cf33cf81f07883049cc2bbbf07ca19c19158aa311af890ec7c56c886e819a5d
+      image: eu.gcr.io/amazing-chalice-243510/ingress-controller:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/ingress-controller@sha256:236f50e3340541e83b4d972f01a6ef318327eedd8902d1cf28095ebda75a809d
+      lastState: {}
+      name: ingress-controller
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:32Z"
+    hostIP: 10.122.0.5
+    phase: Running
+    podIP: 10.244.1.246
+    podIPs:
+    - ip: 10.244.1.246
+    qosClass: Burstable
+    startTime: "2021-08-26T09:53:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T10:30:09Z"
+    generateName: k8s-triliovault-resource-cleaner-1629973800-
+    labels:
+      app.kubernetes.io/instance: k8s-triliovault-resource-cleaner
+      app.kubernetes.io/managed-by: k8s-triliovault
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      controller-uid: 49c2217b-5b2c-4202-b990-f40cfd00089a
+      job-name: k8s-triliovault-resource-cleaner-1629973800
+    name: k8s-triliovault-resource-cleaner-1629973800-987gb
+    namespace: default
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Job
+      name: k8s-triliovault-resource-cleaner-1629973800
+      uid: 49c2217b-5b2c-4202-b990-f40cfd00089a
+    resourceVersion: "1612483"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-resource-cleaner-1629973800-987gb
+    uid: d1dae1d9-1a90-48d1-82c3-9696c530708c
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - args:
+      - backup
+      env:
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: APP_SCOPE
+        value: Cluster
+      image: eu.gcr.io/amazing-chalice-243510/resource-cleaner:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: resource-cleaner
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs3
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Never
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:30:10Z"
+      reason: PodCompleted
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:30:14Z"
+      reason: PodCompleted
+      status: "False"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:30:14Z"
+      reason: PodCompleted
+      status: "False"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:30:09Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://97919ca0413423d35f02ef8c5cf3398c9e069a7e12f179e0cb6a42c1a021e1e9
+      image: eu.gcr.io/amazing-chalice-243510/resource-cleaner:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/resource-cleaner@sha256:6096b3115c8d3bd0517a230a34b53224abb9f6602d93c03cb4edc4e8ee0c4e44
+      lastState: {}
+      name: resource-cleaner
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: docker://97919ca0413423d35f02ef8c5cf3398c9e069a7e12f179e0cb6a42c1a021e1e9
+          exitCode: 0
+          finishedAt: "2021-08-26T10:30:14Z"
+          reason: Completed
+          startedAt: "2021-08-26T10:30:12Z"
+    hostIP: 10.122.0.5
+    phase: Succeeded
+    podIP: 10.244.1.229
+    podIPs:
+    - ip: 10.244.1.229
+    qosClass: Burstable
+    startTime: "2021-08-26T10:30:10Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T09:53:28Z"
+    generateName: k8s-triliovault-web-6c675bdbcc-
+    labels:
+      app: k8s-triliovault-web
+      app.kubernetes.io/instance: k8s-triliovault-web
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      pod-template-hash: 6c675bdbcc
+      release: tvm-default
+      triliovault.trilio.io/owner: tvm
+    name: k8s-triliovault-web-6c675bdbcc-rgk8s
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: k8s-triliovault-web-6c675bdbcc
+      uid: 235a8c05-dfa2-4fe7-be02-8ab771f4a8ef
+    resourceVersion: "1608262"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-web-6c675bdbcc-rgk8s
+    uid: cad7a684-164e-4b57-96b5-e4a7107bb0b0
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - env:
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: APP_SCOPE
+        value: Cluster
+      - name: RELEASE
+        value: tvm-default
+      image: eu.gcr.io/amazing-chalice-243510/web:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: triliovault-web
+      ports:
+      - containerPort: 9443
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /tmp
+        name: tvk-temp
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs3
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - emptyDir: {}
+      name: tvk-temp
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://ef02fed498fe7ad59c15d3721cb3656739879f016d5e967184e71e05813371f8
+      image: eu.gcr.io/amazing-chalice-243510/web:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/web@sha256:08358b115ba69a70feaf1252c499e1ba0e5aa1268e469703cb91fa090e15a1c3
+      lastState: {}
+      name: triliovault-web
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:32Z"
+    hostIP: 10.122.0.5
+    phase: Running
+    podIP: 10.244.1.196
+    podIPs:
+    - ip: 10.244.1.196
+    qosClass: Burstable
+    startTime: "2021-08-26T09:53:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T09:53:28Z"
+    generateName: k8s-triliovault-web-backend-55c55f5c8c-
+    labels:
+      app: k8s-triliovault-web-backend
+      app.kubernetes.io/instance: k8s-triliovault-web-backend
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      pod-template-hash: 55c55f5c8c
+      release: tvm-default
+      triliovault.trilio.io/owner: tvm
+    name: k8s-triliovault-web-backend-55c55f5c8c-2x7r2
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: k8s-triliovault-web-backend-55c55f5c8c
+      uid: 234b9894-27aa-47e3-a0ee-4ff9a725f23d
+    resourceVersion: "1608270"
+    selfLink: /api/v1/namespaces/default/pods/k8s-triliovault-web-backend-55c55f5c8c-2x7r2
+    uid: 76108d9f-b185-41b6-8201-3d09424713c8
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - env:
+      - name: INSTALL_NAMESPACE
+        value: default
+      - name: APP_SCOPE
+        value: Cluster
+      - name: RELEASE
+        value: tvm-default
+      - name: RELEASE_TAG
+        value: v2.1.1-alpha
+      - name: WEB_SESSION_ACCESS_TTL
+        value: 1h
+      - name: WEB_SESSION_REFRESH_TTL
+        value: 24h
+      - name: WEB_SESSION_MAX_INACTIVITY_TTL
+        value: 15m
+      image: eu.gcr.io/amazing-chalice-243510/web-backend:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: triliovault-backend
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - KILL
+          - AUDIT_WRITE
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-token-sdcct
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs3
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: k8s-triliovault
+    serviceAccountName: k8s-triliovault
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: k8s-triliovault-token-sdcct
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-token-sdcct
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:33Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://b3fd5df7f322f1aa9028d87eb22fb735483ad7fcb6a5c3f633ce6a8dbeeeb4b7
+      image: eu.gcr.io/amazing-chalice-243510/web-backend:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/web-backend@sha256:badce92adcd8b1b4882bf48eaeed49e7d4da69f6fdafbc8773b490725bd990c5
+      lastState: {}
+      name: triliovault-backend
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:32Z"
+    hostIP: 10.122.0.5
+    phase: Running
+    podIP: 10.244.1.211
+    podIPs:
+    - ip: 10.244.1.211
+    qosClass: Burstable
+    startTime: "2021-08-26T09:53:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T10:26:21Z"
+    generateName: testnfs-validator-co1mag-
+    labels:
+      app.kubernetes.io/instance: testnfs-validator-co1mag
+      app.kubernetes.io/managed-by: k8s-triliovault
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      controller-uid: d10e3128-b74d-4346-a269-14348ec77cc4
+      job-name: testnfs-validator-co1mag
+      owner-gen-id: "1"
+    name: testnfs-validator-co1mag-cjw8d
+    namespace: default
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Job
+      name: testnfs-validator-co1mag
+      uid: d10e3128-b74d-4346-a269-14348ec77cc4
+    resourceVersion: "1612060"
+    selfLink: /api/v1/namespaces/default/pods/testnfs-validator-co1mag-cjw8d
+    uid: b9c5a275-e97e-4162-934c-74dc299ffd79
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - command:
+      - /bin/sh
+      - -c
+      - /usr/bin/python3 /opt/tvk/datastore-attacher/scripts/target_validations.py
+        --target-name=testnfs --namespace=default
+      image: eu.gcr.io/amazing-chalice-243510/datastore-attacher:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: validator
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - SYS_ADMIN
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /triliodata
+        name: nfs
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: triliovault-target-b0051c26-9991-4857-841a-c07fa33d1d08-tontjxp
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs3
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Never
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: triliovault-target-b0051c26-9991-4857-841a-c07fa33d1d08
+    serviceAccountName: triliovault-target-b0051c26-9991-4857-841a-c07fa33d1d08
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: nfs
+      persistentVolumeClaim:
+        claimName: tvk-nfs-volume-testnfs-65fd2d37-06c8-4732-8e20-e3ccf4caed6e
+    - name: triliovault-target-b0051c26-9991-4857-841a-c07fa33d1d08-tontjxp
+      secret:
+        defaultMode: 420
+        secretName: triliovault-target-b0051c26-9991-4857-841a-c07fa33d1d08-tontjxp
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:26:21Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:26:34Z"
+      message: 'containers with unready status: [validator]'
+      reason: ContainersNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:26:34Z"
+      message: 'containers with unready status: [validator]'
+      reason: ContainersNotReady
+      status: "False"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:26:21Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://c567d6abdb02cb66738206279b19f2d00a847dce88d3a56b20e999bf473fbb55
+      image: eu.gcr.io/amazing-chalice-243510/datastore-attacher:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/datastore-attacher@sha256:44cea36c74d6d38dbe2059898337ff6035e1dd445ccf45d24df7f6a927c60064
+      lastState: {}
+      name: validator
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: docker://c567d6abdb02cb66738206279b19f2d00a847dce88d3a56b20e999bf473fbb55
+          exitCode: 1
+          finishedAt: "2021-08-26T10:26:33Z"
+          reason: Error
+          startedAt: "2021-08-26T10:26:30Z"
+    hostIP: 10.122.0.5
+    phase: Failed
+    podIP: 10.244.1.153
+    podIPs:
+    - ip: 10.244.1.153
+    qosClass: Burstable
+    startTime: "2021-08-26T10:26:21Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T10:32:28Z"
+    generateName: testnfs1-validator-ovvb6l-
+    labels:
+      app.kubernetes.io/instance: testnfs1-validator-ovvb6l
+      app.kubernetes.io/managed-by: k8s-triliovault
+      app.kubernetes.io/name: k8s-triliovault
+      app.kubernetes.io/part-of: k8s-triliovault
+      controller-uid: 845dca62-0c6c-4025-8744-dd71d3dbe8b7
+      job-name: testnfs1-validator-ovvb6l
+      owner-gen-id: "1"
+    name: testnfs1-validator-ovvb6l-6bwns
+    namespace: default
+    ownerReferences:
+    - apiVersion: batch/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Job
+      name: testnfs1-validator-ovvb6l
+      uid: 845dca62-0c6c-4025-8744-dd71d3dbe8b7
+    resourceVersion: "1612805"
+    selfLink: /api/v1/namespaces/default/pods/testnfs1-validator-ovvb6l-6bwns
+    uid: 3b489d80-55f4-4917-88be-650650c3b763
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - command:
+      - /bin/sh
+      - -c
+      - /usr/bin/python3 /opt/tvk/datastore-attacher/scripts/target_validations.py
+        --target-name=testnfs1 --namespace=default
+      image: eu.gcr.io/amazing-chalice-243510/datastore-attacher:v2.1.1-alpha
+      imagePullPolicy: IfNotPresent
+      name: validator
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+          - SYS_ADMIN
+          drop:
+          - ALL
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        runAsUser: 1001
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /triliodata
+        name: nfs
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: triliovault-target-87644150-71ab-4cb4-a666-864c5a13c2d1-tojfs8p
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    nodeName: trilio-test2-default-pool-84zs3
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Never
+    schedulerName: default-scheduler
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+    serviceAccount: triliovault-target-87644150-71ab-4cb4-a666-864c5a13c2d1
+    serviceAccountName: triliovault-target-87644150-71ab-4cb4-a666-864c5a13c2d1
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: nfs
+      persistentVolumeClaim:
+        claimName: tvk-nfs-volume-testnfs1-f6fb81af-d428-4d5b-b0c1-2d05b8c32ac0
+    - name: triliovault-target-87644150-71ab-4cb4-a666-864c5a13c2d1-tojfs8p
+      secret:
+        defaultMode: 420
+        secretName: triliovault-target-87644150-71ab-4cb4-a666-864c5a13c2d1-tojfs8p
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:32:28Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:32:41Z"
+      message: 'containers with unready status: [validator]'
+      reason: ContainersNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:32:41Z"
+      message: 'containers with unready status: [validator]'
+      reason: ContainersNotReady
+      status: "False"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T10:32:28Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://ca1931524ba5ab0b1eb4e8876be2dea06a640a5f259b4dd62decb380ee80047e
+      image: eu.gcr.io/amazing-chalice-243510/datastore-attacher:v2.1.1-alpha
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/datastore-attacher@sha256:44cea36c74d6d38dbe2059898337ff6035e1dd445ccf45d24df7f6a927c60064
+      lastState: {}
+      name: validator
+      ready: false
+      restartCount: 0
+      started: false
+      state:
+        terminated:
+          containerID: docker://ca1931524ba5ab0b1eb4e8876be2dea06a640a5f259b4dd62decb380ee80047e
+          exitCode: 1
+          finishedAt: "2021-08-26T10:32:40Z"
+          reason: Error
+          startedAt: "2021-08-26T10:32:37Z"
+    hostIP: 10.122.0.5
+    phase: Failed
+    podIP: 10.244.1.215
+    podIPs:
+    - ip: 10.244.1.215
+    qosClass: Burstable
+    startTime: "2021-08-26T10:32:28Z"
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: "2021-08-26T09:52:15Z"
+    generateName: triliovault-operator-k8s-triliovault-operator-85795f7ddb-
+    labels:
+      app: triliovault-operator-k8s-triliovault-operator
+      chart: k8s-triliovault-operator-v2.1.0
+      heritage: Helm
+      pod-template-hash: 85795f7ddb
+      release: triliovault-operator
+    name: triliovault-operator-k8s-triliovault-operator-85795f7ddb-26lxb
+    namespace: default
+    ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ReplicaSet
+      name: triliovault-operator-k8s-triliovault-operator-85795f7ddb
+      uid: 4ce39232-1455-4a79-a7e4-726a7cd783b1
+    resourceVersion: "1608029"
+    selfLink: /api/v1/namespaces/default/pods/triliovault-operator-k8s-triliovault-operator-85795f7ddb-26lxb
+    uid: 8d154f01-6de9-42f6-b521-2ace77392f3a
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+              - amd64
+    containers:
+    - env:
+      - name: TVK_ENV
+      - name: TVK_HELM_REPO
+      - name: REGISTRY
+        value: eu.gcr.io/amazing-chalice-243510
+      - name: ADMISSION_MUTATION_CONFIG
+        value: triliovault-operator-mutating-webhook-configuration
+      - name: ADMISSION_VALIDATION_CONFIG
+        value: triliovault-operator-validating-webhook-configuration
+      - name: NAMESPACE_VALIDATION_CONFIG
+        value: triliovault-operator-ns-validating-webhook-configuration
+      image: eu.gcr.io/amazing-chalice-243510/k8s-triliovault-operator:v2.1.0
+      imagePullPolicy: Always
+      name: k8s-triliovault-operator
+      resources:
+        limits:
+          cpu: 200m
+          memory: 512Mi
+        requests:
+          cpu: 10m
+          memory: 10Mi
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /tmp/k8s-webhook-server/serving-certs
+        name: webhook-certs
+        readOnly: true
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-operator-token-ffcf2
+        readOnly: true
+    dnsPolicy: ClusterFirst
+    enableServiceLinks: true
+    initContainers:
+    - env:
+      - name: TVK_ENV
+      - name: TVK_HELM_REPO
+      - name: RELEASE_VERSION
+        value: v2.1.0
+      - name: ADMISSION_MUTATION_CONFIG
+        value: triliovault-operator-mutating-webhook-configuration
+      - name: ADMISSION_VALIDATION_CONFIG
+        value: triliovault-operator-validating-webhook-configuration
+      - name: NAMESPACE_VALIDATION_CONFIG
+        value: triliovault-operator-ns-validating-webhook-configuration
+      - name: WEBHOOK_SERVICE
+        value: triliovault-operator-k8s-triliovault-operator-webhook-service
+      - name: WEBHOOK_NAMESPACE
+        value: default
+      - name: SECRET_NAME
+        value: triliovault-operator-k8s-triliovault-operator-webhook-certs
+      image: eu.gcr.io/amazing-chalice-243510/operator-webhook-init:v2.1.0
+      imagePullPolicy: Always
+      name: webhook-init
+      resources: {}
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+        name: k8s-triliovault-operator-token-ffcf2
+        readOnly: true
+    nodeName: trilio-test2-default-pool-84zsu
+    preemptionPolicy: PreemptLowerPriority
+    priority: 0
+    restartPolicy: Always
+    schedulerName: default-scheduler
+    securityContext: {}
+    serviceAccount: k8s-triliovault-operator
+    serviceAccountName: k8s-triliovault-operator
+    terminationGracePeriodSeconds: 30
+    tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    volumes:
+    - name: webhook-certs
+      secret:
+        defaultMode: 420
+        secretName: triliovault-operator-k8s-triliovault-operator-webhook-certs
+    - name: k8s-triliovault-operator-token-ffcf2
+      secret:
+        defaultMode: 420
+        secretName: k8s-triliovault-operator-token-ffcf2
+  status:
+    conditions:
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:14Z"
+      status: "True"
+      type: Initialized
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:16Z"
+      status: "True"
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:53:16Z"
+      status: "True"
+      type: ContainersReady
+    - lastProbeTime: null
+      lastTransitionTime: "2021-08-26T09:52:15Z"
+      status: "True"
+      type: PodScheduled
+    containerStatuses:
+    - containerID: docker://7595f4c7d8e2298db7cb309365e0636987101bbd1362a0ccff1ef39dfb7dc400
+      image: eu.gcr.io/amazing-chalice-243510/k8s-triliovault-operator:v2.1.0
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/k8s-triliovault-operator@sha256:90fbd9c8ede01709a693b25c4a4d080d7c57abd9d2285452dbc8bb08a5a5829c
+      lastState: {}
+      name: k8s-triliovault-operator
+      ready: true
+      restartCount: 0
+      started: true
+      state:
+        running:
+          startedAt: "2021-08-26T09:53:16Z"
+    hostIP: 10.122.0.3
+    initContainerStatuses:
+    - containerID: docker://6554a03b6050b6175d790d01676abf5c57d4942391b1c7b3e0cef5674f6041ab
+      image: eu.gcr.io/amazing-chalice-243510/operator-webhook-init:v2.1.0
+      imageID: docker-pullable://eu.gcr.io/amazing-chalice-243510/operator-webhook-init@sha256:6e376476e150c14c401854f854285abf068a09da0a54743d5b3a68b3fcb33d80
+      lastState: {}
+      name: webhook-init
+      ready: true
+      restartCount: 0
+      state:
+        terminated:
+          containerID: docker://6554a03b6050b6175d790d01676abf5c57d4942391b1c7b3e0cef5674f6041ab
+          exitCode: 0
+          finishedAt: "2021-08-26T09:53:13Z"
+          reason: Completed
+          startedAt: "2021-08-26T09:52:18Z"
+    phase: Running
+    podIP: 10.244.0.253
+    podIPs:
+    - ip: 10.244.0.253
+    qosClass: Burstable
+    startTime: "2021-08-26T09:52:15Z"
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
