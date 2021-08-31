@@ -36,13 +36,14 @@ const (
 	BackupCmdName            = "backup"
 	backupCmdPluralName      = BackupCmdName + "s"
 	MetadataCmdName          = "metadata"
+	ResourceMetadataCmdName  = "resource-metadata"
+	TrilioResourcesCmdName   = "trilio-resources"
 
 	pagesFlag    = "pages"
 	pagesDefault = 1
 	pagesUsage   = "Number of Pages to display within the paginated result set"
 
-	PageSizeFlag = "page-size"
-
+	PageSizeFlag    = "page-size"
 	PageSizeDefault = 10
 	pageSizeUsage   = "Maximum number of results in a single page"
 
@@ -52,8 +53,7 @@ const (
 
 	TvkInstanceUIDFlag    = "tvk-instance-uid"
 	tvkInstanceUIDDefault = ""
-
-	tvkInstanceUIDUsage = "TVK instance id to filter backupPlan"
+	tvkInstanceUIDUsage   = "TVK instance id to filter backupPlan"
 
 	BackupPlanUIDFlag    = "backup-plan-uid"
 	backupPlanUIDDefault = ""
@@ -78,17 +78,45 @@ const (
 	OperationScopeFlag  = "operation-scope"
 	operationScopeUsage = "Filter backup/backupPlan for [SingleNamespace, MultiNamespace]. " +
 		"Supported values can be in any case capital, small or mixed."
+
+	groupFlag      = "group"
+	groupFlagShort = "g"
+	groupDefault   = ""
+	groupUsage     = "API group name of resource whose resource-metadata needs to be retrieved"
+
+	versionFlag      = "version"
+	versionFlagShort = "v"
+	versionDefault   = ""
+	versionUsage     = "API version of resource whose resource-metadata needs to be retrieved"
+
+	kindFlag      = "kind"
+	kindFlagShort = "k"
+	kindDefault   = ""
+	kindUsage     = "API resource Kind of backed up resource whose resource-metadata needs to be retrieved"
+
+	nameFlag    = "name"
+	nameDefault = ""
+	nameUsage   = "name of backed up resource whose resource-metadata needs to be retrieved"
+
+	kindsFlag  = "kinds"
+	kindsUsage = "List of kinds of trilio resources. Available kinds: ClusterBackup, ClusterBackupPlan," +
+		" Backup, BackupPlan, Target, Secret, Policy, Hook"
 )
 
 var (
 	tvkInstanceUID  string
 	backupPlanUID   string
+	group           string
+	version         string
+	kind            string
+	name            string
 	backupStatus    string
 	backupUID       string
 	creationDate    string
 	expiryDate      string
 	orderBy         string
 	operationScope  string
+	kinds           []string
 	pages, pageSize int
 )
 

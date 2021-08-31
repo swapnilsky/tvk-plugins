@@ -21,6 +21,7 @@ type BackupPlanListOptions struct {
 // BackupPlan struct stores extracted fields from actual BackupPlan API GET response
 type BackupPlan struct {
 	Name                      string      `json:"Name"`
+	Kind                      string      `json:"Kind"`
 	UID                       string      `json:"UID"`
 	Type                      string      `json:"Type"`
 	TvkInstanceID             string      `json:"TVK Instance"`
@@ -42,7 +43,7 @@ func (auth *AuthInfo) GetBackupPlans(options *BackupPlanListOptions, backupPlanU
 	}
 
 	queryParam := values.Encode()
-	response, err := auth.TriggerAPIs(queryParam, internal.BackupPlanAPIPath, BackupPlanSelector, backupPlanUIDs)
+	response, err := auth.TriggerAPIs(queryParam, internal.BackupPlanAPIPath, BackupPlanSelector, backupPlanUIDs, true, false)
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,8 @@ func normalizeBPlanDataToRowsAndColumns(response string, wideOutput bool) ([]met
 	for i := range bPlanList.Results {
 		bPlan := bPlanList.Results[i]
 		rows = append(rows, metav1.TableRow{
-			Cells: []interface{}{bPlan.Name, bPlan.UID, bPlan.Type, bPlan.TvkInstanceID, bPlan.SuccessfulBackup, bPlan.SuccessfulBackupTimestamp},
+			Cells: []interface{}{bPlan.Name, bPlan.Kind, bPlan.UID, bPlan.Type, bPlan.TvkInstanceID,
+				bPlan.SuccessfulBackup, bPlan.SuccessfulBackupTimestamp},
 		})
 	}
 
@@ -81,18 +83,33 @@ func normalizeBPlanDataToRowsAndColumns(response string, wideOutput bool) ([]met
 	if wideOutput {
 		columns = getColumnDefinitions(bPlanList.Results[0], 0)
 	} else {
-		columns = getColumnDefinitions(bPlanList.Results[0], 4)
+		columns = getColumnDefinitions(bPlanList.Results[0], 5)
 	}
 
 	return rows, columns, err
 }
 
 // TriggerAPIs returns backup or backupPlan list stored on mounted target with available options
-func (auth *AuthInfo) TriggerAPIs(queryParam, apiPath string, selector, args []string) ([]byte, error) {
+func (auth *AuthInfo) TriggerAPIs(queryParam, apiPath string, selector, args []string,
+	pathParam, isTrilioResourcesAPI bool) ([]byte, error) {
+
+	var (
+		resp, body []byte
+		err        error
+	)
+
 	if len(args) > 0 {
 		var respData []interface{}
 		for _, uid := range args {
-			resp, err := auth.TriggerAPI(uid, queryParam, apiPath, selector)
+
+			if pathParam {
+				resp, err = auth.TriggerAPI(uid, queryParam, apiPath, selector)
+			} else if !pathParam && isTrilioResourcesAPI {
+				resp, err = auth.TriggerAPI("", queryParam, getTrilioResourcesAPIPath(uid), selector)
+			} else {
+				resp, err = auth.TriggerAPI("", queryParam, apiPath, selector)
+			}
+
 			if err != nil {
 				return nil, err
 			}
@@ -104,7 +121,7 @@ func (auth *AuthInfo) TriggerAPIs(queryParam, apiPath string, selector, args []s
 			respData = append(respData, result)
 		}
 
-		body, err := json.MarshalIndent(respData, "", "  ")
+		body, err = json.MarshalIndent(respData, "", "  ")
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +134,7 @@ func (auth *AuthInfo) TriggerAPIs(queryParam, apiPath string, selector, args []s
 		return body, nil
 	}
 
-	resp, err := auth.TriggerAPI("", queryParam, apiPath, selector)
+	resp, err = auth.TriggerAPI("", queryParam, apiPath, selector)
 	if err != nil {
 		return nil, err
 	}
