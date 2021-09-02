@@ -1,12 +1,12 @@
 apiVersion: triliovault.trilio.io/v1
 kind: Target
 metadata:
-  name: testnfs1
+  name: demo-target
   namespace: default
 spec:
   type: NFS
   vendor: Other
   nfsCredentials:
-    nfsExport: 35.211.182.109:/testnfs
+    nfsExport: 10.20.30.40:/exportedpath
     nfsOptions: nfsvers=4
   thresholdCapacity: 1000Gi
