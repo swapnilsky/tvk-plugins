@@ -7,8 +7,6 @@ PREFLIGHT_TESTS_SUCCESS=true
 # shellcheck source=/dev/null
 source tools/tvk-oneclick/tvk-oneclick 
 source tests/tvk-oneclick/input_file
-path_export=$PWD/tools/tvk-oneclick
-export PATH=$PATH:$path_export
 
 export input_config=tests/tvk-oneclick/input_file
 
