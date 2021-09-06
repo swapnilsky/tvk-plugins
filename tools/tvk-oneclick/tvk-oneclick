@@ -180,9 +180,6 @@ print(soup.body.find('div', attrs={'class':'yaml-content'}).text)
 sys.stdout.close()
 result = subprocess.check_output("kubectl apply -f license_file1.yaml", shell=True)
 EOF
-  #install trilio license
-  #install_license.py
-
 }
 
 
