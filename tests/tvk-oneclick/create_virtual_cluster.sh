@@ -20,4 +20,4 @@ create_vcluster()
   echo "csi crds installation is completed."
 }
 
-create_vcluster $1 $2
+create_vcluster "$1" "$2"
