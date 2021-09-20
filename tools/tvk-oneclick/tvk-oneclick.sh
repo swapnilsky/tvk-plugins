@@ -57,6 +57,7 @@ vercomp () {
         return 0
     fi
     local IFS=.
+    # shellcheck disable=SC2206
     local i ver1=($1) ver2=($2)
     # fill empty fields in ver1 with zeros
     for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
@@ -156,6 +157,7 @@ install_tvk()
       fi
     else
       echo "Upgrading Triliovault operator"
+      # shellcheck disable=SC2206
       semver=( ${old_operator_version//./ } )
       major="${semver[0]}"
       minor="${semver[1]}"
