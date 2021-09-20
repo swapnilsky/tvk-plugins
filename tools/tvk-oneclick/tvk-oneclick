@@ -857,7 +857,7 @@ EOM
           {
 	    helm repo add bitnami https://charts.bitnami.com/bitnami
             helm repo update 1>> >(logit)
-            helm install mongotest bitnami/mongodb -n
+            helm install mongotest bitnami/mongodb -n $backup_namespace
 	  } 2>> >(logit)
 	  echo "Installing App..."
 	  runtime="15 minute"
