@@ -23,7 +23,7 @@ done < <(find $build_dir -print0)
 tvk_oneclick_yaml="tvk-oneclick.yaml"
 cp .krew/$tvk_oneclick_yaml $build_dir/$tvk_oneclick_yaml
 
-tvk_preflight_yaml=$build_dir/$tvk_oneclick_yaml
+tvk_oneclick_yaml=$build_dir/$tvk_oneclick_yaml
 
 tar_checksum="$(awk '{print $1}' $build_dir/tvk-oneclick-sha256.txt)"
 sed -i "s/PREFLIGHT_TAR_CHECKSUM/${tar_checksum}/g" $tvk_oneclick_yaml
