@@ -303,7 +303,7 @@ jobs:
       - name: Create Virtual cluster
         run: |
           tests/tvk-oneclick/create_virtual_cluster.sh tvk-oneclick-${{ github.run_id }} "default"
- 
+
       - name: Update 'input_config'
         run: |
           echo "Updating 'tests/tvk-oneclick/input_config to run tvk-oneclick"
@@ -376,7 +376,7 @@ jobs:
         uses: actions/download-artifact@v2
         if: needs.pre-release.outputs.release_tvk_oneclick == 'true'
         with:
-          name: tvk-oneclick 
+          name: tvk-oneclick
           path: build
 
       - name: Update GoReleaser Config for Release
