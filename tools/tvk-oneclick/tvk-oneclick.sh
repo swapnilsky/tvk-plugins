@@ -1113,7 +1113,7 @@ main()
   then
     read -r -p "Please enter path for config file: " input_config
     # shellcheck source=/dev/null
-    . $input_config
+    . "$input_config"
     export input_config=$input_config
   fi
   if [[ ${PREFLIGHT} == 'True'  ]]
