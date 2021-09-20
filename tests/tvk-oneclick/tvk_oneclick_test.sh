@@ -2,7 +2,7 @@
 
 set -o pipefail
 
-PREFLIGHT_TESTS_SUCCESS=true
+ONECLICK_TESTS_SUCCESS=true
 
 # shellcheck source=/dev/null
 source tools/tvk-oneclick/tvk-oneclick 

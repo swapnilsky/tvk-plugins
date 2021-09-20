@@ -33,7 +33,7 @@ jobs:
       testPreflight: ${{ steps.filter.outputs.testPreflight }}
       logCollector: ${{ steps.filter.outputs.logCollector }}
       targetBrowser: ${{ steps.filter.outputs.targetBrowser }}
-      testTargetBrowser: ${{ steps.filter.outputs.testTargetBrowser }}i
+      testTargetBrowser: ${{ steps.filter.outputs.testTargetBrowser }}
       oneclick: ${{ steps.filter.outputs.oneclick }}
       testoneclick: ${{ steps.filter.outputs.testoneclick }}
     steps:
@@ -102,10 +102,10 @@ jobs:
               - 'tools/tvk-oneclick/**'
               - 'tests/tvk-oneclick/**'
             oneclick:
-              - *sharedPreflight
+              - *sharedOneclick
               - '.krew/tvk-oneclick.yaml'
             testoneclick:
-              - *sharedPreflight
+              - *sharedOneclick
 
   # build_test_preflight job build preflight packages, runs integration tests and tests packages for plugin creation(install, uninstall)
   # upload preflight packages to github artifacts if tags('/ref/tags') are pushed
@@ -301,12 +301,12 @@ jobs:
           credentials: ${{ secrets.GKE_SA_KEY }}
 
       - name: Create Virtual cluster
-        run: creat_virtual_cluster.sh
+        run: create_virtual_cluster.sh
         with:
-          job_name: "Tvk_oneclclick"
+          job_name: tvk-oneclick-${{ github.run_id }}
           install_namespace: "default"
  
-       - name: Update 'input_config'
+      - name: Update 'input_config'
         run: |
           echo "Updating 'tests/tvk-oneclick/input_config to run tvk-oneclick"
           sed -i "s/^\(nfs_server\s*=\s*\).*$/\1\'${{ secrets.NFS_SERVER_IP }}\'/" tests/tvk-oneclick/input_config
@@ -320,9 +320,12 @@ jobs:
       - name: Ensure Required Utilities Installed
         run: make install-required-utilities
 
-
       - name: Test tvk_oneclick Plugin Locally
         run: make test-tvk-oneclick-plugin-locally
+
+      - name: Destroy Virtual cluster
+        run: |
+          vcluster delete tvk-oneclick-${{ github.run_id }} -n default
 
       - name: Upload  Tvk-oneclick Plugin Packges to github artifact
         uses: actions/upload-artifact@v2

@@ -40,10 +40,10 @@ else
   exit 1
 fi
 
-preflight_sha=$(awk '{print $1}' "$tvkoneclickSha256FilePath")
+tvk_oneclick_sha=$(awk '{print $1}' "$tvkoneclickSha256FilePath")
 
-sed -i "s/PREFLIGHT_VERSION/$TVK_ONECLICK_VERSION/g" "$tvk_oneclick_template_manifest"
-sed -i "s/PREFLIGHT_TAR_CHECKSUM/$tvk_oneclicl_sha/g" "$tvk_oneclick_template_manifest"
+sed -i "s/TVK_ONECLICK_VERSION/$TVK_ONECLICK_VERSION/g" "$tvk_oneclick_template_manifest"
+sed -i "s/TVK_ONECLICK_TAR_CHECKSUM/$tvk_oneclick_sha/g" "$tvk_oneclick_template_manifest"
 
 cp "$build_dir"/$tvk_oneclick_yaml "$plugins_dir"/$tvk_oneclick_yaml
-echo >&2 "Updated preflight plugin manifest '$tvk_oneclick_yaml' with 'version=$TVK_ONECLICK_VERSION' and new sha256sum"
+echo >&2 "Updated tvk-oneclick plugin manifest '$tvk_oneclick_yaml' with 'version=$TVK_ONECLICK_VERSION' and new sha256sum"

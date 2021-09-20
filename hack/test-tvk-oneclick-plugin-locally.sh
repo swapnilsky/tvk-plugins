@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This script verifies that a preflight build can be installed to a system using
+# This script verifies that a tvk-oneclick build can be installed to a system using
 # krew local testing method
 
 set -euo pipefail
