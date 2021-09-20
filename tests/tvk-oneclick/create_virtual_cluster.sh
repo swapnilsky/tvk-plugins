@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-def create_vcluster()
+create_vcluster()
 {
   JOB_NAME=$1
   install_ns=$2
-  curl -L -o /usr/local/bin/vcluster https://github.com/loft-sh/vcluster/releases/download/v0.4.0-beta.1/vcluster-linux-amd64 \
-    && chmod +x /usr/local/bin/vcluster
+  sudo curl -L -o /usr/local/bin/vcluster https://github.com/loft-sh/vcluster/releases/download/v0.4.0-beta.1/vcluster-linux-amd64 \
+    && sudo chmod +x /usr/local/bin/vcluster
   vcluster create "${JOB_NAME}" -n "${install_ns}" -f vcluster.yaml
   ## Connect vcluster
   sleep 30
@@ -20,4 +20,4 @@ def create_vcluster()
   echo "csi crds installation is completed."
 }
 
-def create_vcluster $1 $2
+create_vcluster $1 $2

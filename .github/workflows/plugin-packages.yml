@@ -301,10 +301,8 @@ jobs:
           credentials: ${{ secrets.GKE_SA_KEY }}
 
       - name: Create Virtual cluster
-        run: create_virtual_cluster.sh
-        with:
-          job_name: tvk-oneclick-${{ github.run_id }}
-          install_namespace: "default"
+        run: |
+          tests/tvk-oneclick/create_virtual_cluster.sh tvk-oneclick-${{ github.run_id }} "default"
  
       - name: Update 'input_config'
         run: |
