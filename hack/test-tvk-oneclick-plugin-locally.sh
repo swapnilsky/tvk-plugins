@@ -32,4 +32,4 @@ kubectl krew uninstall tvk-oneclick
 KREW_OS=darwin KREW_ARCH=amd64 kubectl krew install --manifest=$tvk_oneclick_manifest --archive="$tvk_oneclick_archive"
 KREW_OS=darwin KREW_ARCH=amd64 kubectl krew uninstall tvk-oneclick
 
-echo >&2 "Successfully tested preflight plugin locally"
+echo >&2 "Successfully tested Tvk-oneclick plugin locally"

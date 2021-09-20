@@ -5,7 +5,7 @@ set -o pipefail
 ONECLICK_TESTS_SUCCESS=true
 
 # shellcheck source=/dev/null
-source tools/tvk-oneclick/tvk-oneclick 
+source tools/tvk-oneclick/tvk-oneclick.sh
 export input_config=tests/tvk-oneclick/input_file
 
 
