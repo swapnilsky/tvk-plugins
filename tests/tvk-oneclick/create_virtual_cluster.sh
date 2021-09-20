@@ -6,7 +6,7 @@ create_vcluster()
   install_ns=$2
   sudo curl -L -o /usr/local/bin/vcluster https://github.com/loft-sh/vcluster/releases/download/v0.4.0-beta.1/vcluster-linux-amd64 \
     && sudo chmod +x /usr/local/bin/vcluster
-  vcluster create "${JOB_NAME}" -n "${install_ns}" -f vcluster.yaml
+  vcluster create "${JOB_NAME}" -n "${install_ns}" -f tests/tvk-oneclick/vcluster.yaml
   ## Connect vcluster
   sleep 30
   vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current > /dev/null 2>&1 & disown
