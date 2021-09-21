@@ -45,7 +45,7 @@ testcreate_target() {
   create_target
   rc=$?
   # shellcheck disable=SC2154
-  sed -i "s/^\(nfs_server\s*=\s*\).*$/\1\'$nfs_server_ip\'/" $input_config
+  sed -i "s/^\(nfs_server\s*=\s*\).*$/\1\'$nfs_server_ip\'/" "$input_config"
   kubectl get target tvk-target -n default -o yaml
   # shellcheck disable=SC2181
   if [ $rc != "0" ]; then
