@@ -8,11 +8,12 @@ create_vcluster()
     && sudo chmod +x /usr/local/bin/vcluster
   vcluster create "${JOB_NAME}" -n "${install_ns}" -f tests/tvk-oneclick/vcluster.yaml
   ## Connect vcluster
-  sleep 30
+  sleep 120
   vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current &
   retcode=$?
   if [ $retcode -eq 0 ];then
     echo "cannot connect to cluster"
+    exit 1
   fi
   sleep 120
   kubectl config use-context "vcluster_${install_ns}_${JOB_NAME}"
