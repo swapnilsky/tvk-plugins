@@ -42,7 +42,6 @@ testconfigure_ui() {
 }
 
 testcreate_target() {
-  current_dir=$PWD
   # shellcheck disable=SC2154
   sed -i "s/^\(nfs_server\s*=\s*\).*$/\1$nfs_server_ip/" "$input_config"
   echo "nfs_server_ip_server = $nfs_server"
@@ -57,7 +56,6 @@ testcreate_target() {
 }
 
 testsample_test(){
-  current_dir=$PWD
   sample_test
   rc=$?
   # shellcheck disable=SC2181
@@ -69,7 +67,6 @@ testsample_test(){
 }
 
 testsample_test_helm(){
-  current_dir=$PWD
   sed -i "s/\(backup_way *= *\).*/\1\'Helm_based\'/" "$input_config"
   sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
   sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
@@ -85,7 +82,6 @@ testsample_test_helm(){
 }
 
 testsample_test_namespace(){
-  current_dir=$PWD
   sed -i "s/\(backup_way *= *\).*/\1\'Namespace_based\'/" "$input_config"
   sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
   sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
@@ -101,7 +97,6 @@ testsample_test_namespace(){
 }
 
 testsample_test_operator(){
-  current_dir=$PWD
   sed -i "s/\(backup_way *= *\).*/\1\'Operator_based\'/" "$input_config"
   sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
   sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
