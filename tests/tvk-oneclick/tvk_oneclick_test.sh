@@ -42,6 +42,7 @@ testconfigure_ui() {
 }
 
 testcreate_target() {
+  # debug message
   # shellcheck disable=SC2154
   echo "env variable = $nfs_server_ip"
   # shellcheck disable=SC2154
