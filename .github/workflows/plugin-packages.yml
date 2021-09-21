@@ -308,7 +308,8 @@ jobs:
         run: |
           echo "Updating 'tests/tvk-oneclick/input_config to run tvk-oneclick"
           sed -i "s/^\(nfs_path\s*=\s*\).*$/\1\'\/src\/nfs\/kubedata\'/" tests/tvk-oneclick/input_config
-          sed -i "s/^\(nfs_path\s*=\s*\).*$/\1${{ secrets.NFS_SERVER_IP }}/" tests/tvk-oneclick/input_config
+          nfs_server=${{ secrets.NFS_SERVER_IP }}
+          sed -i "s/^\(nfs_server\s*=\s*\).*$/\1\'$nfs_server\'/" tests/tvk-oneclick/input_config
 
 
       - name: Run Tvk-oneclick Integration Tests
