@@ -113,6 +113,25 @@ testsample_test_operator(){
 
 cleanup() {
   local rc=$?
+  
+  # cleanup namespaces and helm release
+  #shellcheck disable=SC2143
+  INSTALL_NAMESPACE=default
+  if [[ $(helm list -n "${INSTALL_NAMESPACE}" | grep "${INSTALL_NAMESPACE}") ]]; then
+    helm delete "${HELM_RELEASE_NAME}" --namespace "${INSTALL_NAMESPACE}"
+  fi
+
+  kubectl get validatingwebhookconfigurations -A | grep "${INSTALL_NAMESPACE}" | awk '{print $1}' | xargs -r kubectl delete validatingwebhookconfigurations || true
+  kubectl get mutatingwebhookconfigurations -A | grep "${INSTALL_NAMESPACE}" | awk '{print $1}' | xargs -r kubectl delete mutatingwebhookconfigurations || true
+
+  # NOTE: need sleep for resources to be garbage collected by api-controller
+  sleep 20
+
+  kubectl delete ns "${INSTALL_NAMESPACE}" --request-timeout 2m || true
+
+  kubectl get po,rs,deployment,pvc,svc,sts,cm,secret,sa,role,rolebinding,job,target,backup,backupplan,policy,restore,cronjob -n "${INSTALL_NAMESPACE}" || true
+
+  kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations -A | grep -E "${INSTALL_NAMESPACE}" || true
 
   #Destroying virtual cluster created
   # shellcheck disable=SC2154
