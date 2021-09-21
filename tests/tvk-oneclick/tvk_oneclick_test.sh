@@ -5,12 +5,21 @@ set -o pipefail
 ONECLICK_TESTS_SUCCESS=true
 
 # shellcheck source=/dev/null
-source tools/tvk-oneclick/tvk-oneclick.sh
+source tests/tvk-oneclick/input_config
+
+# shellcheck disable=SC1091
 export input_config=tests/tvk-oneclick/input_file
 
+# shellcheck disable=SC1091
+source tools/tvk-oneclick/tvk-oneclick.sh --source-only
+
+
+#install yq
+sudo snap install yq
+sudo cp /snap/bin/yq /bin/
 
 testinstallTVK() {
-  install_tvk
+  install_tvk 
   rc=$?
   # shellcheck disable=SC2181
   if [ $rc != "0" ]; then
@@ -22,7 +31,7 @@ testinstallTVK() {
 
 testconfigure_ui() {
   rc=0
-  configure_ui
+  configure_ui 
   rc=$?
   # shellcheck disable=SC2181
   if [ $rc != "0" ]; then
@@ -114,45 +123,47 @@ testsample_test_operator(){
   return $rc
 }
 
-testinstallTVK
-retCode=$?
-if [[ retCode -ne 0 ]]; then
-  ONECLICK_TESTS_SUCCESS=false
-fi
+#testinstallTVK
+#retCode=$?
+#if [[ retCode -ne 0 ]]; then
+#  ONECLICK_TESTS_SUCCESS=false
+#fi
 
 testconfigure_ui
 retCode=$?
-if [[ retCode -ne 0 ]]; then
+if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
+
+exit 1 
 testcreate_target
 retCode=$?
-if [[ retCode -ne 0 ]]; then
+if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
 testsample_test
 retCode=$?
-if [[ retCode -ne 0 ]]; then
+if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
 testsample_test_helm
 retCode=$?
-if [[ retCode -ne 0 ]]; then
+if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
 testsample_test_namespace
 retCode=$?
-if [[ retCode -ne 0 ]]; then
+if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
 testsample_test_operator
 retCode=$?
-if [[ retCode -ne 0 ]]; then
+if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
