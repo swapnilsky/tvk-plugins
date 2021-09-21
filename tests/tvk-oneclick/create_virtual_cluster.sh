@@ -9,7 +9,7 @@ create_vcluster()
   vcluster create "${JOB_NAME}" -n "${install_ns}" -f tests/tvk-oneclick/vcluster.yaml
   ## Connect vcluster
   sleep 30
-  vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current  & disown
+  vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current &
   retcode=$?
   if [ $retcode -eq 0 ];then
     echo "cannot connect to cluster"
