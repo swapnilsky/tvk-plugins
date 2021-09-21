@@ -641,7 +641,7 @@ EOF
         retcode=$?
 	if [ "$retcode" -ne 0 ];then
 	  echo "Target creation failed"
-	  exit
+	  return
 	fi
 	;;
     *)
