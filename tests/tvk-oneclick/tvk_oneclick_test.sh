@@ -72,10 +72,10 @@ testsample_test(){
 testsample_test_helm(){
   current_dir=$PWD
   cd tools/tvk-oneclick || return
-  sed -i "s/\(backup_way *= *\).*/\1\'Helm_based\'/" $input_config
-  sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-helm\'/" $input_config
-  sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-helm\'/" $input_config
-  sed -i "s/\(restore_name *= *\).*/\1\'trilio-test-helm\'/" $input_config
+  sed -i "s/\(backup_way *= *\).*/\1\'Helm_based\'/" "$input_config"
+  sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
+  sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
+  sed -i "s/\(restore_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
   sample_test
   rc=$?
   # shellcheck disable=SC2181
@@ -90,10 +90,10 @@ testsample_test_helm(){
 testsample_test_namespace(){
   current_dir=$PWD
   cd tools/tvk-oneclick || return
-  sed -i "s/\(backup_way *= *\).*/\1\'Namespace_based\'/" $input_config
-  sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-namespace\'/" $input_config
-  sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-namespace\'/" $input_config
-  sed -i "s/\(restore_name *= *\).*/\1\'trilio-test-namespace\'/" $input_config
+  sed -i "s/\(backup_way *= *\).*/\1\'Namespace_based\'/" "$input_config"
+  sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
+  sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
+  sed -i "s/\(restore_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
   sample_test
   rc=$?
   # shellcheck disable=SC2181
@@ -108,10 +108,10 @@ testsample_test_namespace(){
 testsample_test_operator(){
   current_dir=$PWD
   cd tools/tvk-oneclick || return
-  sed -i "s/\(backup_way *= *\).*/\1\'Operator_based\'/" $input_config
-  sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-operator\'/" $input_config
-  sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-operator\'/" $input_config
-  sed -i "s/\(restore_name *= *\).*/\1\'trilio-test-operator\'/" $input_config
+  sed -i "s/\(backup_way *= *\).*/\1\'Operator_based\'/" "$input_config"
+  sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
+  sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
+  sed -i "s/\(restore_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
   sample_test
   rc=$?
   # shellcheck disable=SC2181
@@ -123,11 +123,11 @@ testsample_test_operator(){
   return $rc
 }
 
-#testinstallTVK
-#retCode=$?
-#if [[ retCode -ne 0 ]]; then
-#  ONECLICK_TESTS_SUCCESS=false
-#fi
+testinstallTVK
+retCode=$?
+if [[ $retCode -ne 0 ]]; then
+  ONECLICK_TESTS_SUCCESS=false
+fi
 
 testconfigure_ui
 retCode=$?
@@ -135,8 +135,6 @@ if [[ $retCode -ne 0 ]]; then
   ONECLICK_TESTS_SUCCESS=false
 fi
 
-
-exit 1 
 testcreate_target
 retCode=$?
 if [[ $retCode -ne 0 ]]; then
