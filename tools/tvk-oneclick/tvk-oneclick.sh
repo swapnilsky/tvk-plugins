@@ -654,7 +654,7 @@ EOF
     esac
     shift
    cmd="kubectl get target $target_name -n  $target_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -e Available -e Unavailable"
-   wait_install "20 minute" "$cmd"
+   wait_install "10 minute" "$cmd"
    if ! kubectl get target "$target_name"  -n  "$target_namespace" -o 'jsonpath={.status.status}' 2>/dev/null | grep -q Available; then
      echo "Failed to create target"
      exit 1
