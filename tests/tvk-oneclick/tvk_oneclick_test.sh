@@ -117,7 +117,7 @@ cleanup() {
   #Destroying virtual cluster created
   # shellcheck disable=SC2154
   vcluster delete "$build_id" -n default
-  Delete helm chart with helm delete "$build_id" --namespace default
+  helm delete "$build_id" --namespace default
   exit ${rc}
 }
 
