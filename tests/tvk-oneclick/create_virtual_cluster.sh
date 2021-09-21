@@ -9,14 +9,18 @@ create_vcluster()
   vcluster create "${JOB_NAME}" -n "${install_ns}" -f tests/tvk-oneclick/vcluster.yaml
   ## Connect vcluster
   sleep 30
-  vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current > /dev/null 2>&1 & disown
+  vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current  & disown
+  retcode=$?
+  if [ $retcode -eq 0 ];then
+    echo "cannot connect to cluster"
+  fi
   sleep 120
   kubectl config use-context "vcluster_${install_ns}_${JOB_NAME}"
   kubectl get ns
   echo "vcluster setup is activated."
 
   ## Install CSI CRDs
-  kubectl apply -f tests/tvk-oneclick/csi-crds.yaml
+  kubectl apply -f tests/tvk-oneclick/csi-crd.yaml
   echo "csi crds installation is completed."
 }
 
