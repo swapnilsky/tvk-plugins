@@ -10,11 +10,6 @@ create_vcluster()
   ## Connect vcluster
   sleep 120
   vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current &
-  retcode=$?
-  if [ $retcode -eq 0 ];then
-    echo "cannot connect to cluster"
-    exit 1
-  fi
   sleep 120
   kubectl config use-context "vcluster_${install_ns}_${JOB_NAME}"
   kubectl get ns
