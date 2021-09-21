@@ -8,7 +8,7 @@ ONECLICK_TESTS_SUCCESS=true
 source tests/tvk-oneclick/input_config
 
 # shellcheck disable=SC1091
-export input_config=tests/tvk-oneclick/input_file
+export input_config=tests/tvk-oneclick/input_config
 
 # shellcheck disable=SC1091
 source tools/tvk-oneclick/tvk-oneclick.sh --source-only
@@ -43,10 +43,9 @@ testconfigure_ui() {
 
 testcreate_target() {
   current_dir=$PWD
-  cd tools/tvk-oneclick || return
   # shellcheck disable=SC2154
-  sed -i "s/^\(nfs_server\s*=\s*\).*$/\1$nfs_server_ip/" tests/tvk-oneclick/input_config
-  echo "nfs_server_ip_server = nfs_server"
+  sed -i "s/^\(nfs_server\s*=\s*\).*$/\1$nfs_server_ip/" "$input_config"
+  echo "nfs_server_ip_server = $nfs_server"
   create_target
   rc=$?
   # shellcheck disable=SC2181
@@ -54,13 +53,11 @@ testcreate_target() {
     # shellcheck disable=SC2082
     echo "Failed - test create_target, Expected 0 got $rc"
   fi
-  cd "$current_dir" || return
   return $rc
 }
 
 testsample_test(){
   current_dir=$PWD
-  cd tools/tvk-oneclick || return
   sample_test
   rc=$?
   # shellcheck disable=SC2181
@@ -68,13 +65,11 @@ testsample_test(){
     # shellcheck disable=SC2082
     echo "Failed - test sample_test, Expected 0 got $rc"
   fi
-  cd "$current_dir" || return
   return $rc
 }
 
 testsample_test_helm(){
   current_dir=$PWD
-  cd tools/tvk-oneclick || return
   sed -i "s/\(backup_way *= *\).*/\1\'Helm_based\'/" "$input_config"
   sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
   sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-helm\'/" "$input_config"
@@ -86,13 +81,11 @@ testsample_test_helm(){
     # shellcheck disable=SC2082
     echo "Failed - test sample_test, Expected 0 got $rc"
   fi
-  cd "$current_dir" || return
   return $rc
 }
 
 testsample_test_namespace(){
   current_dir=$PWD
-  cd tools/tvk-oneclick || return
   sed -i "s/\(backup_way *= *\).*/\1\'Namespace_based\'/" "$input_config"
   sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
   sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-namespace\'/" "$input_config"
@@ -104,13 +97,11 @@ testsample_test_namespace(){
     # shellcheck disable=SC2082
     echo "Failed - test sample_test, Expected 0 got $rc"
   fi
-  cd "$current_dir" || return
   return $rc
 }
 
 testsample_test_operator(){
   current_dir=$PWD
-  cd tools/tvk-oneclick || return
   sed -i "s/\(backup_way *= *\).*/\1\'Operator_based\'/" "$input_config"
   sed -i "s/\(bk_plan_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
   sed -i "s/\(backup_name *= *\).*/\1\'trilio-test-operator\'/" "$input_config"
@@ -122,12 +113,8 @@ testsample_test_operator(){
     # shellcheck disable=SC2082
     echo "Failed - test sample_test, Expected 0 got $rc"
   fi
-  cd "$current_dir" || return
   return $rc
 }
-
-
-
 
 cleanup() {
   local rc=$?
