@@ -307,14 +307,14 @@ jobs:
       - name: Update 'input_config'
         run: |
           echo "Updating 'tests/tvk-oneclick/input_config to run tvk-oneclick"
-          nfsserver=${{ secrets.NFS_SERVER_IP }}
-          sed -i "s/^\(nfs_server\s*=\s*\).*$/\1$nfsserver/" tests/tvk-oneclick/input_config
           sed -i "s/^\(nfs_path\s*=\s*\).*$/\1\'\/src\/nfs\/kubedata\'/" tests/tvk-oneclick/input_config
 
 
       - name: Run Tvk-oneclick Integration Tests
         if: (needs.pre-build.outputs.testoneclick == 'true') || startsWith(github.ref, 'refs/tags/')
         run: make test-tvk_oneclick-integration
+        env:
+          nfs_server_ip: ${{ secrets.NFS_SERVER_IP }}
 
       - name: Ensure Required Utilities Installed
         run: make install-required-utilities
