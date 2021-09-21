@@ -654,7 +654,7 @@ EOF
    wait_install "15 minute" "$cmd"
    if ! kubectl get target "$target_name"  -n  "$target_namespace" -o 'jsonpath={.status.status}' 2>/dev/null | grep -q Available; then
      echo "Failed to create target"
-     exit 1
+     return
    else
      echo "Target is Available to use"
    fi
