@@ -12,6 +12,11 @@ create_vcluster()
   vcluster connect "${JOB_NAME}"  -n "${install_ns}" --update-current > /dev/null 2>&1 & disown
   sleep 120
   kubectl config use-context "vcluster_${install_ns}_${JOB_NAME}"
+  retcode=$?
+  if [ $retcode -ne 0 ];then
+    echo "Cannot change context, please check create_cluster"
+    exit 1
+  fi
   kubectl get ns
   echo "vcluster setup is activated."
 
