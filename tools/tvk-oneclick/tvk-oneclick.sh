@@ -1151,4 +1151,9 @@ logit() {
 
 LOG_FILE="/tmp/tvk_oneclick_stderr"
 
+# --- End Definitions Section ---
+# check if we are being sourced by another script or shell
+[[ "${#BASH_SOURCE[@]}" -gt "1" ]] && { return 0; }
+# --- Begin Code Execution Section ---
+
 main "$@"

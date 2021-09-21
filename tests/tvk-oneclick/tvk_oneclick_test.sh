@@ -13,6 +13,8 @@ export input_config=tests/tvk-oneclick/input_file
 # shellcheck disable=SC1091
 source tools/tvk-oneclick/tvk-oneclick.sh --source-only
 
+trap 'cleanup' EXIT
+
 #install yq
 sudo snap install yq
 sudo cp /snap/bin/yq /bin/
