@@ -311,7 +311,6 @@ jobs:
           nfs_server=${{ secrets.NFS_SERVER_IP }}
           sed -i "s/^\(nfs_server\s*=\s*\).*$/\1\'$nfs_server\'/" tests/tvk-oneclick/input_config
 
-
       - name: Run Tvk-oneclick Integration Tests
         if: (needs.pre-build.outputs.testoneclick == 'true') || startsWith(github.ref, 'refs/tags/')
         run: make test-tvk_oneclick-integration
