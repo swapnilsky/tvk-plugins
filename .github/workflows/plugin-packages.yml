@@ -315,16 +315,13 @@ jobs:
         run: make test-tvk_oneclick-integration
         env:
           nfs_server_ip: ${{ secrets.NFS_SERVER_IP }}
+          build_id: tvk-oneclick-${{ github.run_id }}
 
       - name: Ensure Required Utilities Installed
         run: make install-required-utilities
 
       - name: Test tvk_oneclick Plugin Locally
         run: make test-tvk-oneclick-plugin-locally
-
-      - name: Destroy Virtual cluster
-        run: |
-          vcluster delete tvk-oneclick-${{ github.run_id }} -n default
 
       - name: Upload  Tvk-oneclick Plugin Packges to github artifact
         uses: actions/upload-artifact@v2

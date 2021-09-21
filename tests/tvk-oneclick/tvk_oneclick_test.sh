@@ -13,7 +13,6 @@ export input_config=tests/tvk-oneclick/input_file
 # shellcheck disable=SC1091
 source tools/tvk-oneclick/tvk-oneclick.sh --source-only
 
-trap 'cleanup' EXIT
 
 #install yq
 sudo snap install yq
@@ -126,6 +125,22 @@ testsample_test_operator(){
   cd "$current_dir" || return
   return $rc
 }
+
+
+
+
+cleanup() {
+  local rc=$?
+
+  #Destroying virtual cluster created
+  # shellcheck disable=SC2154
+  vcluster delete "$build_id" -n default
+
+  exit ${rc}
+}
+
+
+trap "cleanup" EXIT
 
 testinstallTVK
 retCode=$?
