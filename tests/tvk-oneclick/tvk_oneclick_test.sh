@@ -115,8 +115,8 @@ cleanup() {
   local rc=$?
   
   # cleanup namespaces and helm release
-  #shellcheck disable=SC2143
   INSTALL_NAMESPACE=default
+  #shellcheck disable=SC2143
   if [[ $(helm list -n "${INSTALL_NAMESPACE}" | grep "${INSTALL_NAMESPACE}") ]]; then
     helm delete "${HELM_RELEASE_NAME}" --namespace "${INSTALL_NAMESPACE}"
   fi
