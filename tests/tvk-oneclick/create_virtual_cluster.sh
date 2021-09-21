@@ -16,7 +16,7 @@ create_vcluster()
   echo "vcluster setup is activated."
 
   ## Install CSI CRDs
-  kubectl apply -f csi-crds.yaml
+  kubectl apply -f tests/tvk-oneclick/csi-crds.yaml
   echo "csi crds installation is completed."
 }
 
