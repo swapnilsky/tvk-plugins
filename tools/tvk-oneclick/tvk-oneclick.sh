@@ -624,9 +624,6 @@ EOF
           nfs_options='nfsvers=4'
         fi
 	echo "Creating target..."
-	echo "Nfs server= ${nfs_server}"
-	echo "Nfs option = ${nfs_options}"
-	echo "target_namespace = ${target_namespace}"
 	cat <<EOF | kubectl apply -f - 1>> >(logit) 2>> >(logit)
 apiVersion: triliovault.trilio.io/v1
 kind: Target
