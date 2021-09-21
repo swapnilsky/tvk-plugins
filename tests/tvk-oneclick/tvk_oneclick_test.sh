@@ -45,6 +45,7 @@ testconfigure_ui() {
 testcreate_target() {
   current_dir=$PWD
   cd tools/tvk-oneclick || return
+  # shellcheck disable=SC2154
   sed -i "s/^\(nfs_server\s*=\s*\).*$/\1$nfs_server_ip/" tests/tvk-oneclick/input_config
   echo "nfs_server_ip_server = nfs_server"
   create_target
