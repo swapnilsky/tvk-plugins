@@ -15,7 +15,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -276,7 +276,6 @@ func GetIngress(ctx context.Context, k8sClient client.Client, name, ns string) *
 	ing := &v1beta1.Ingress{}
 	Eventually(func() error {
 		log.Info("getting Ingress")
-
 		return k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, ing)
 	}, timeout, interval).ShouldNot(HaveOccurred())
 
@@ -291,12 +290,12 @@ func UpdateIngress(ctx context.Context, k8sClient client.Client, ing *v1beta1.In
 	log.Infof("Updated ingress %s successfully", ing.Name)
 }
 
-func checkPvcDeleted(ctx context.Context, k8sClient client.Client, ns, selector string) {
+func checkPvcDeleted(ctx context.Context, k8sClient client.Client, ns string) {
 	Eventually(func() bool {
 		log.Info("Waiting for PVC to be deleted")
 		pvcList := corev1.PersistentVolumeClaimList{}
 		selectors, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
-			MatchLabels: map[string]string{kubernetesInstanceKey: selector},
+			MatchLabels: map[string]string{kubernetesInstanceKey: TargetName},
 		})
 		Expect(err).To(BeNil())
 		err = k8sClient.List(ctx, &pvcList, client.MatchingLabelsSelector{Selector: selectors}, client.InNamespace(ns))

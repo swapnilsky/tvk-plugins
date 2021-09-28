@@ -8,9 +8,11 @@ var BackupSelector = []string{
 	"status.status as Status",
 	"status.size as Size",
 	"spec.backupPlan.uid as BackupPlan UID",
-	"status.creationTimestamp as Start Time",
+	"status.startTimestamp as Start Time",
 	"status.completionTimestamp as End Time",
 	"spec.clusterBackupPlan.uid as BackupPlan UID",
+	"generatedField.tvkInstanceUID as TVK Instance",
+	"status.expirationTimestamp as Expiration Time",
 }
 
 var BackupPlanSelector = []string{
@@ -21,4 +23,5 @@ var BackupPlanSelector = []string{
 	"generatedField.tvkInstanceUID as TVK Instance",
 	"generatedField.successfulBackupCount as Successful Backup",
 	"generatedField.lastSuccessfulBackupTimestamp as Successful Backup Timestamp",
+	"metadata.creationTimestamp as Creation Time",
 }

@@ -22,6 +22,8 @@ type BackupListOptions struct {
 	BackupPlanUID string `url:"backupPlanUID,omitempty"`
 	BackupStatus  string `url:"status,omitempty"`
 	CommonListOptions
+	ExpirationStartTimestamp string `url:"expirationStartTimestamp,omitempty"`
+	ExpirationEndTimestamp   string `url:"expirationEndTimestamp,omitempty"`
 }
 
 // Backup struct stores extracted fields from actual Backup API GET response
@@ -33,8 +35,10 @@ type Backup struct {
 	Size           string `json:"Size"`
 	Status         string `json:"Status"`
 	BackupPlanUID  string `json:"BackupPlan UID"`
+	TvkInstanceID  string `json:"TVK Instance"`
 	CreationTime   string `json:"Start Time"`
 	CompletionTime string `json:"End Time"`
+	ExpirationTime string `json:"Expiration Time"`
 }
 
 // BackupList struct stores extracted fields from actual Backup API LIST response
@@ -50,7 +54,7 @@ func (auth *AuthInfo) GetBackups(options *BackupListOptions, backupUIDs []string
 		return err
 	}
 	queryParam := values.Encode()
-	response, err := auth.TriggerAPIs(queryParam, internal.BackupAPIPath, BackupSelector, backupUIDs, true, false)
+	response, err := auth.TriggerAPIs(queryParam, internal.BackupAPIPath, backupUIDs)
 	if err != nil {
 		return err
 	}
@@ -58,13 +62,13 @@ func (auth *AuthInfo) GetBackups(options *BackupListOptions, backupUIDs []string
 	return PrintFormattedResponse(internal.BackupAPIPath, string(response), options.OutputFormat)
 }
 
-func (auth *AuthInfo) TriggerAPI(pathParam, queryParam, apiPath string, selector []string) ([]byte, error) {
+func (auth *AuthInfo) TriggerAPI(apiPath, queryParam string) ([]byte, error) {
 	tvkURL, err := url.Parse(auth.TvkHost)
 	if err != nil {
 		return nil, err
 	}
 
-	tvkURL.Path = path.Join(tvkURL.Path, auth.TargetBrowserPath, apiPath, pathParam)
+	tvkURL.Path = path.Join(tvkURL.Path, auth.TargetBrowserPath, apiPath)
 	tvkURL.Scheme = internal.HTTPscheme
 	if auth.UseHTTPS {
 		tvkURL.Scheme = internal.HTTPSscheme
@@ -134,8 +138,8 @@ func normalizeBackupDataToRowsAndColumns(response string, wideOutput bool) ([]me
 	for i := range backupList.Results {
 		backup := backupList.Results[i]
 		rows = append(rows, metav1.TableRow{
-			Cells: []interface{}{backup.Name, backup.Kind, backup.UID, backup.Type, backup.Size, backup.Status, backup.BackupPlanUID,
-				backup.CreationTime, backup.CompletionTime},
+			Cells: []interface{}{backup.Name, backup.Kind, backup.UID, backup.Type, backup.Size, backup.Status,
+				backup.BackupPlanUID, backup.TvkInstanceID, backup.CreationTime, backup.CompletionTime, backup.ExpirationTime},
 		})
 	}
 
