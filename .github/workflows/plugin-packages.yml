@@ -362,7 +362,7 @@ jobs:
 
       - name: Download Preflight/Tvk-oneclick Packages from Artifact
         uses: actions/download-artifact@v2
-        if: (needs.pre-release.outputs.release_preflight == 'true') || (needs.pre-release.outputs.release_tvk_oneclick == 'true')  
+        if: (needs.pre-release.outputs.release_preflight == 'true') || (needs.pre-release.outputs.release_tvk_oneclick == 'true')
         with:
           name: plugin packages
           path: build
