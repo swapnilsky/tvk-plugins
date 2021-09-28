@@ -29,4 +29,5 @@ create_vcluster()
   sleep 30
 }
 
+# shellcheck disable=SC2154
 create_vcluster "$build_id" "default"

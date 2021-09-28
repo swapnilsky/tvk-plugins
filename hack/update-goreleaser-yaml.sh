@@ -9,7 +9,7 @@ echo "release log-collector package:" "$release_log_collector"
 # shellcheck disable=SC2154
 echo "release target-browser package:" "$release_target_browser"
 # shellcheck disable=SC2154
-echo "release tvk-oneclick package:" "$release_tvk-oneclick"
+echo "release tvk-oneclick package:" "$release_tvk_oneclick"
 
 SRC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 goreleaser_yaml=$SRC_ROOT/.goreleaser.yml
@@ -31,7 +31,7 @@ if [[ $release_target_browser != true ]]; then
   sed -i '/binary: target-browser/a \ \ skip: true' "$goreleaser_yaml"
 fi
 
-if [[ $release_tvk-oneclick != true ]]; then
+if [[ $release_tvk_oneclick != true ]]; then
   echo "skip tvk-oneclick packages release from goreleaser.yml"
   sed -i '/binary: tvk-oneclick/a \ \ skip: true' "$goreleaser_yaml"
 fi

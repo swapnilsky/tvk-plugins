@@ -14,6 +14,7 @@ preflight_checks()
     return 1
   fi
   ret=$(kubectl tvk-preflight --help  2>/dev/null)
+  # shellcheck disable=SC2236
   if [[ ! -z "$ret" ]];
   then
     echo "Skipping plugin tvk-preflight installation as it is already installed"
@@ -66,6 +67,7 @@ vercomp () {
         return 0
     fi
     local IFS=.
+    # shellcheck disable=SC2206
     local i ver1=($1) ver2=($2)
     # fill empty fields in ver1 with zeros
     for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
@@ -185,6 +187,7 @@ install_tvk()
       upgrade_tvo=1
       tvk_ns="$get_ns"
       echo "Upgrading Triliovault operator"
+      # shellcheck disable=SC2206
       semver=( ${old_operator_version//./ } )
       major="${semver[0]}"
       minor="${semver[1]}"
@@ -1398,6 +1401,7 @@ main()
   then
     read -r -p "Please enter path for config file: " input_config
     # shellcheck source=/dev/null
+    # shellcheck disable=SC2086
     . $input_config
     export input_config=$input_config
   fi
