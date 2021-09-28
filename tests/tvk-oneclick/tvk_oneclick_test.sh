@@ -118,7 +118,7 @@ cleanup() {
   local rc=$?
   
   # cleanup namespaces and helm release
-  INSTALL_NAMESPACE=default
+  INSTALL_NAMESPACE=
   #shellcheck disable=SC2143
   if [[ $(helm list -n "${INSTALL_NAMESPACE}" | grep "${INSTALL_NAMESPACE}") ]]; then
     helm delete "${HELM_RELEASE_NAME}" --namespace "${INSTALL_NAMESPACE}"
@@ -136,10 +136,11 @@ cleanup() {
 
   kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations -A | grep -E "${INSTALL_NAMESPACE}" || true
 
+  # shellcheck disable=SC2154
+  helm delete "$build_id" --namespace default
   #Destroying virtual cluster created
   # shellcheck disable=SC2154
   vcluster delete "$build_id" -n default
-  helm delete "$build_id" --namespace default
   exit ${rc}
 }
 

@@ -29,4 +29,4 @@ create_vcluster()
   sleep 30
 }
 
-create_vcluster "$1" "$2"
+create_vcluster "$build_id" "default"

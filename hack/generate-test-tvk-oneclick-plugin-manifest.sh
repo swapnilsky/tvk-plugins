@@ -26,8 +26,8 @@ cp .krew/$tvk_oneclick_yaml $build_dir/$tvk_oneclick_yaml
 tvk_oneclick_yaml=$build_dir/$tvk_oneclick_yaml
 
 tar_checksum="$(awk '{print $1}' $build_dir/tvk-oneclick-sha256.txt)"
-sed -i "s/PREFLIGHT_TAR_CHECKSUM/${tar_checksum}/g" $tvk_oneclick_yaml
+sed -i "s/TVK_ONECLICK_TAR_CHECKSUM/${tar_checksum}/g" $tvk_oneclick_yaml
 # shellcheck disable=SC2154
-sed -i "s/PREFLIGHT_VERSION/$git_version/g" $tvk_oneclick_yaml
+sed -i "s/TVK_ONECLICK_VERSION/$git_version/g" $tvk_oneclick_yaml
 
 echo >&2 "Written out $tvk_oneclick_yaml"

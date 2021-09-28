@@ -11,14 +11,19 @@ preflight_checks()
   if [[ -z "$ret" ]];then
     echo "Please install krew plugin and then try.For information on krew installation please visit:"
     echo "https://krew.sigs.k8s.io/docs/user-guide/setup/install/"
-    exit 1
+    return 1
   fi
-  if  [[ $(kubectl tvk-preflight --help  2>/dev/null) ]];
+  ret=$(kubectl tvk-preflight --help  2>/dev/null)
+  if [[ ! -z "$ret" ]];
   then
     echo "Skipping plugin tvk-preflight installation as it is already installed"
   else
-    plugin_url='https://github.com/trilioData/tvk-plugins.git'
-    kubectl krew index add tvk-plugins "$plugin_url" 1>> >(logit) 2>> >(logit)
+    ret=$(kubectl krew index list 2>> >(logit) | grep tvk-plugins)
+    ret_code=$?
+    if [ "$ret_code" -ne 0 ];then
+      plugin_url='https://github.com/trilioData/tvk-plugins.git'
+      kubectl krew index add tvk-plugins "$plugin_url" 1>> >(logit) 2>> >(logit)
+    fi
     kubectl krew install tvk-plugins/tvk-preflight 1>> >(logit) 2>> >(logit)
     retcode=$?
     if [ "$retcode" -ne 0 ];then 
@@ -26,16 +31,20 @@ preflight_checks()
     fi
   fi 
   if  [[ -z "${input_config}" ]];then
-    read -r -p "Provide storageclass to be used for TVK/Application Installation(storageclass with default annotation): " storage_class
+    read -r -p "Provide storageclass to be used for TVK/Application Installation(storageclass with default annotation will be take as default): " storage_class
   fi
   if [[ -z "$storage_class" ]];then
-	  storage_class=$(kubectl get storageclass | grep -w '(default)' | awk  '{print $1}')
-	  if [[ -z "$storage_class" ]];then
-	    echo "No default storage class found, need one to proceed";
-	    exit 1
-          fi
+    storage_class=$(kubectl get storageclass | grep -w '(default)' | awk  '{print $1}')
+    if [[ -z "$storage_class" ]];then
+      echo "No default storage class found, need one to proceed";
+      return 1
+    fi
   fi
   check=$(kubectl tvk-preflight --storageclass "$storage_class" | tee /dev/tty)
+  ret_code=$?
+  if [ "$ret_code" -ne 0 ];then
+    echo "Failed to run 'kubectl tvk-preflight',please check if PATH variable for krew is set properly and then try"
+  fi
   check_for_fail=$(echo "$check" | grep  'Some Pre-flight Checks Failed!')
   if [[ -z "$check_for_fail" ]];then
     echo "All preflight checks are done and you can proceed"
@@ -57,7 +66,6 @@ vercomp () {
         return 0
     fi
     local IFS=.
-    # shellcheck disable=SC2206
     local i ver1=($1) ver2=($2)
     # fill empty fields in ver1 with zeros
     for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
@@ -91,13 +99,14 @@ wait_install()
   runtime=$1
   spin='-\|/'
   i=0
-  endtime=$(date -ud "$runtime" +%s)
+  #endtime=$(date -ud "$runtime" +%s)
+  endtime=$(python3 -c "import time;timeout = int(time.time()) + 60*$runtime;print(\"{0}\".format(timeout))")
   if [[ -z ${endtime} ]];then
     echo "There is some issue with date usage, please check the pre-requsites in README page" 1>> >(logit) 2>> >(logit)
     echo "Something went wrong..terminating" 2>> >(logit)
   fi
   val1=$(eval "$2")
-  while [[ $(date -u +%s) -le $endtime ]] && [[ "" == "$val1" ]] || [[ "$val1" == '{}' ]]
+  while [[ $(python3 -c "import time;timeout = int(time.time());print(\"{0}\".format(timeout))") -le $endtime ]] && [[ "" == "$val1" ]] || [[ "$val1" == '{}' ]]
   do
     i=$(( (i+1) %4 ))
     printf "\r %s" "${spin:$i:1}"
@@ -116,17 +125,18 @@ install_tvk()
   if [ "$retcode" -ne 0 ];then
     echo "There is some error in helm update,please resolve and try again" 1>> >(logit) 2>> >(logit)
     echo "Error ading helm repo"
-    exit 1
+    return 1
   fi
   helm repo add triliovault http://charts.k8strilio.net/trilio-stable/k8s-triliovault 1>> >(logit) 2>> >(logit) 
   helm repo update 1>> >(logit) 2>> >(logit)
   if  [[ -z ${input_config} ]];then
-    read -r -p "Please provide the operator version to be installed(2.1.0): " operator_version
-    read -r -p "Please provide the triliovault manager version(v2.1.1-alpha): " triliovault_manager_version
-    read -r -p "Proceed even if resource exists(True): " if_resource_exists_still_proceed
+    read -r -p "Please provide the operator version to be installed (default - 2.1.0): " operator_version
+    read -r -p "Please provide the triliovault manager version (default - v2.1.1-alpha): " triliovault_manager_version
+    read -r -p "Namespace name in which TVK should be installed: (default - default): " tvk_ns 
+    read -r -p "Proceed even if resource exists y/n (default - y): " if_resource_exists_still_proceed
   fi
   if [[ -z "$if_resource_exists_still_proceed" ]];then
-    if_resource_exists_still_proceed=True
+    if_resource_exists_still_proceed='y'
   fi
   if [[ -z "$operator_version" ]];then
     operator_version='2.1.0'
@@ -134,17 +144,33 @@ install_tvk()
   if [[ -z "$triliovault_manager_version" ]];then
     triliovault_manager_version='v2.1.1-alpha'
   fi
+  if [[ -z "$tvk_ns" ]];then
+    tvk_ns="default"
+  fi
   get_ns=$(kubectl get deployments -l "release=triliovault-operator" -A 2>> >(logit) | awk '{print $1}' | sed -n 2p)
   if [ -z "$get_ns" ];then
+    #Create ns for installation, if not there.
+    ret=$(kubectl get ns $tvk_ns 2>/dev/null)
+    if [[ -z "$ret" ]]; then
+      if ! kubectl create ns $tvk_ns 2>> >(logit)
+      then
+        echo "$tvk_ns namespace creation failed"
+
+      fi
+    fi
     # Install triliovault operator
     echo "Installing Triliovault operator..."
-    helm install triliovault-operator triliovault-operator/k8s-triliovault-operator --version $operator_version 2>> >(logit)
+    helm install triliovault-operator triliovault-operator/k8s-triliovault-operator --version $operator_version -n $tvk_ns 2>> >(logit)
     retcode=$?
     if [ "$retcode" -ne 0 ];then 
       echo "There is some error in helm install triliovaul operator,please resolve and try again" 2>> >(logit) 
-      exit 1
+      return 1
     fi
   else
+    echo "Triliovault operator is already installed!"
+    if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
+        exit 1
+    fi
     old_operator_version=$(helm list  -n "$get_ns" | grep k8s-triliovault-operator | awk '{print $9}' | rev  | cut -d- -f1 | rev | sed 's/[a-z-]//g')
     # shellcheck disable=SC2001
     new_operator_version=$(echo $operator_version | sed 's/[a-z-]//g')
@@ -152,12 +178,13 @@ install_tvk()
     ret_val=$?
     if [[ $ret_val != 2 ]];then
       echo "Triliovault operator cannot be upgraded, please check version number"
-      if ! [[ $if_resource_exists_still_proceed ]];then
+      if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
         exit 1
       fi
     else
+      upgrade_tvo=1
+      tvk_ns="$get_ns"
       echo "Upgrading Triliovault operator"
-      # shellcheck disable=SC2206
       semver=( ${old_operator_version//./ } )
       major="${semver[0]}"
       minor="${semver[1]}"
@@ -169,28 +196,36 @@ install_tvk()
 	retcode=$?
 	if [ "$retcode" -ne 0 ];then 
 	  echo "There is some error in helm tvm-upgrade,please resolve and try again" 2>> >(logit)
-	  exit 1
+	  return 1
         fi
       fi 	
-      helm  upgrade triliovault-operator triliovault-operator/k8s-triliovault-operator --version $operator_version 2>> >(logit)
+      helm upgrade triliovault-operator triliovault-operator/k8s-triliovault-operator --version $operator_version -n "$get_ns" 2>> >(logit)
       retcode=$?
       if [ "$retcode" -ne 0 ];then 
         echo "There is some error in helm upgrade,please resolve and try again" 2>> >(logit)
-	exit 1
+	return 1
       fi
       sleep 10
     fi
   fi
-  cmd="kubectl get pod -l release=triliovault-operator -o 'jsonpath={.items[*].status.conditions[*].status}' | grep -v False"
-  wait_install "10 minute" "$cmd"
-  if ! kubectl get pods -l release=triliovault-operator 2>/dev/null | grep -q Running;then
-    echo "Triliovault operator installation failed"
-    exit 1
+  cmd="kubectl get pod -l release=triliovault-operator -n $tvk_ns -o 'jsonpath={.items[*].status.conditions[*].status}' | grep -v False"
+  wait_install 10 "$cmd"
+  if ! kubectl get pods -l release=triliovault-operator -n "$tvk_ns" 2>/dev/null | grep -q Running;then
+    if [[ $upgrade_tvo == 1 ]];then
+      echo "Triliovault operator upgrade failed"
+    else
+      echo "Triliovault operator installation failed"
+    fi
+    return 1
   fi
   echo "Triliovault operator is running"
   
   #check if TVK manager is installed
-  if [[ $(kubectl get pods -l app=k8s-triliovault-control-plane 2>/dev/null) ]] && [[ $(kubectl get pods -l app=k8s-triliovault-admission-webhook 2>/dev/null) ]];then
+  if [[ $(kubectl get pods -l app=k8s-triliovault-control-plane -A 2>/dev/null) ]] && [[ $(kubectl get pods -l app=k8s-triliovault-admission-webhook 2>/dev/null) ]];then
+    echo "Triliovault manager is already installed"
+    if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
+      exit 1
+    fi
     #Check if TVM can be upgraded
     old_tvm_version=$(kubectl get TrilioVaultManager -n "$get_ns" -o json | grep releaseVersion | awk '{print$2}' | sed 's/[a-z-]//g' |  sed -e 's/^"//' -e 's/"$//')
     # shellcheck disable=SC2001
@@ -199,11 +234,14 @@ install_tvk()
     ret_val=$?
     if [[ $ret_val != 2 ]];then
       echo "TVM cannot be upgraded! Please check version"
-      if ! [[ $if_resource_exists_still_proceed ]];then
+      if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
         exit 1
       fi
       return
     else
+      echo "Upgrading triliovault manager.."
+      tvm_upgrade=1
+      tvk_ns="$get_ns"
       if [[ $old_tvm_version == 2.1* ]] && [[ $new_triliovault_manager_version == 2.5* ]];
       then
         svc_type=$(kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.spec.type}')
@@ -217,6 +255,7 @@ metadata:
   labels:
     triliovault: triliovault
   name: tvm
+  namespace: ${tvk_ns}
 spec:
   trilioVaultAppVersion: ${triliovault_manager_version}
   componentConfiguration:
@@ -231,11 +270,10 @@ EOF
           retcode=$?
           if [ "$retcode" -ne 0 ];then
             echo "There is error upgrading triliovault manager,please resolve and try again" 2>> >(logit)
-            exit 1
 	  else
 	    echo "Triliovault manager upgraded successfully"
           fi
-          return
+          return 1
 	 fi
       fi
     fi
@@ -251,6 +289,7 @@ metadata:
   labels:
     triliovault: triliovault
   name: tvm
+  namespace: ${tvk_ns}
 spec:
   trilioVaultAppVersion: ${triliovault_manager_version}
   helmVersion:
@@ -259,34 +298,41 @@ spec:
 EOF
   retcode=$?
   if [ "$retcode" -ne 0 ];then 
-    echo "There is error in installing triliovault manager,please resolve and try again" 2>> >(logit)
-    exit 1
+    echo "There is error in installingi/upgrading triliovault manager,please resolve and try again" 2>> >(logit)
+    return 1
   fi
   sleep 2
-  echo "Installing Triliovault manager...."
-  cmd="kubectl get pods -l app=k8s-triliovault-control-plane 2>/dev/null | grep Running"
-  wait_install "10 minute" "$cmd"
-  cmd="kubectl get pods -l app=k8s-triliovault-admission-webhook 2>/dev/null | grep Running"
-  wait_install "10 minute" "$cmd"
-  if ! kubectl get pods -l app=k8s-triliovault-control-plane 2>/dev/null | grep -q Running && ! kubectl get pods -l app=k8s-triliovault-admission-webhook 2>/dev/null | grep -q Running; then
-      echo "TVM installation failed"
-      exit 1
+  if [[ $tvm_upgrade == 1 ]];then
+    echo "Upgrading Triliovault manager..."
+  else
+    echo "Installing Triliovault manager...."
   fi
-  echo "TVK Manager is installed"
-  install_license
+  cmd="kubectl get pods -l app=k8s-triliovault-control-plane -n $tvk_ns 2>/dev/null | grep Running"
+  wait_install 10 "$cmd"
+  cmd="kubectl get pods -l app=k8s-triliovault-admission-webhook -n $tvk_ns 2>/dev/null | grep Running"
+  wait_install 10 "$cmd"
+  if ! kubectl get pods -l app=k8s-triliovault-control-plane -n "$tvk_ns" 2>/dev/null | grep -q Running && ! kubectl get pods -l app=k8s-triliovault-admission-webhook -n "$tvk_ns" 2>/dev/null | grep -q Running; then
+      if [[ $tvm_upgrade == 1 ]];then
+        echo "TVM upgrade failed"
+      else
+        echo "TVM installation failed"
+      fi
+      return 1
+  fi
+  if [[ $tvm_upgrade == 1 ]];then
+    echo "TVM is upgraded successfully!"
+  else
+    echo "TVK Manager is installed"
+  fi
+  install_license "$tvk_ns"
 }
 
 
 #This module is use to install license
 install_license(){
+  tvk_ns=$1
   echo "Installing Freetrial license..."
-  #Install required packages
-  {
-    sudo apt update
-    yes | sudo apt install python3-pip
-    pip3 install beautifulsoup4 
-    pip3 install lxml 
-  } 1>> >(logit) 2>> >(logit)
+  sleep 2
   cat <<EOF | python3
 #!/usr/bin/python3
 
@@ -306,8 +352,16 @@ soup = BeautifulSoup(contents, 'lxml')
 sys.stdout = open("license_file1.yaml", "w")
 print(soup.body.find('div', attrs={'class':'yaml-content'}).text)
 sys.stdout.close()
-result = subprocess.check_output("kubectl apply -f license_file1.yaml", shell=True)
+result = subprocess.check_output("kubectl apply -f license_file1.yaml -n $tvk_ns", shell=True)
 EOF
+  ret=$(kubectl get license -n "$tvk_ns" 2>> >(logit) | grep -q Activated)
+  ret_code=$?
+  if [ "$ret_code" -ne 0 ];then
+    echo "License installation failed"
+    exit 1
+  else
+    echo "License is installed successfully"
+  fi 
 }
 
 
@@ -326,7 +380,7 @@ configure_ui()
      ui_access_type=3
    else
      echo "Wrong option selected for ui_access_type"
-     exit 1
+     return 1 
    fi
  fi
  if [[ -z "$ui_access_type" ]]; then
@@ -347,7 +401,7 @@ configure_ui()
      ;;
    *)
      echo "Incorrect choice"
-     exit 1
+     return
      ;;
    esac
    shift
@@ -358,89 +412,93 @@ configure_ui()
 configure_nodeport_for_tvkui()
 {
   if  [[ -z ${input_config} ]];then
-    read -r -p "Please enter hostname for a cluster: " tvkhost_name
+    read -r -p "Please enter host name for tvk ingress (default - tvk-doks): " tvkhost_name
+  fi
+  if [[ -z ${tvkhost_name} ]];then
+    tvkhost_name="tvk-doks"
   fi
   gateway=$(kubectl get pods --no-headers=true 2>/dev/null | awk '/k8s-triliovault-ingress-gateway/{print $1}')
   if [[ -z "$gateway" ]]; then
     echo "Not able to find k8s-triliovault-ingress-gateway resource,TVK UI configuration failed"
-    exit 1
+    return 1
   fi
   node=$(kubectl get pods "$gateway" -o jsonpath='{.spec.nodeName}' 2>> >(logit))
   ip=$(kubectl get node "$node"  -o jsonpath='{.status.addresses[?(@.type=="ExternalIP")].address}' 2>> >(logit))
   port=$(kubectl get svc k8s-triliovault-ingress-gateway  -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}' 2>> >(logit))
-  if ! kubectl patch ingress k8s-triliovault-ingress-master -p '{"spec":{"rules":[{"host":"'"${tvkhost_name}-tvk.com"'"}]}}';then
+  if ! kubectl patch ingress k8s-triliovault-ingress-master -p '{"spec":{"rules":[{"host":"'"${tvkhost_name}"'"}]}}';then
     echo "TVK UI configuration failed, please check ingress"
-    exit 1
+    return 1
   fi
-  echo "For accesing UI, create an entry in /etc/hosts file for the IPs like '$ip  $tvkhost_name-tvk.com'"
-  echo "After creating an entry,TVK UI can be accessed through http://$tvkhost_name-tvk.com:$port"
+  echo "For accesing UI, create an entry in /etc/hosts file for the IPs like '$ip  $tvkhost_name'"
+  echo "After creating an entry,TVK UI can be accessed through http://$tvkhost_name:$port/login"
   echo "For https access, please refer - https://docs.trilio.io/kubernetes/management-console/user-interface/accessing-the-ui" 
 }
 
 #This function is used to configure TVK UI through Loadbalancer
 configure_loadbalancer_for_tvkUI()
 {
- if  [[ -z ${input_config} ]];then
-   read -r -p "Please enter domainname for cluster: " domain
-   read -r -p "Please enter host name  for a cluster: " tvkhost_name
-   read -r -p "Please enter cluster name: " cluster_name 
- fi
- if ! kubectl patch svc k8s-triliovault-ingress-gateway -p '{"spec": {"type": "LoadBalancer"}}' 1>> >(logit) 2>> >(logit) ; then
-   echo "TVK UI configuration failed, please check ingress"
-   exit 1
- fi
- echo "Configuring UI......This may take some time"
- cmd="kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.status.loadBalancer}'"
- wait_install "20 minute" "$cmd"
- val_status=$(kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.status.loadBalancer}')
- if [[ $val_status == '{}' ]]
- then
+  ret=$(doctl auth list 2>/dev/null)
+  if [[ -z $ret ]];then
+    echo "This functionality requires doctl installed"
+    echo "Please follow  to install https://docs.digitalocean.com/reference/doctl/how-to/install/ doctl"
+    return 1
+  fi
+  if  [[ -z ${input_config} ]];then
+    echo "To use DigitalOcean DNS, you need to register a domain name with a registrar and update your domain’s NS records to point to DigitalOcean’s name servers."
+    read -r -p "Please enter domainname for cluster(Domain name you have registered and added in Doks console): " domain
+    read -r -p "Please enter host name for tvk ingress (default - tvk-doks): " tvkhost_name
+  fi
+  if [[ -z ${tvkhost_name} ]];then
+    tvkhost_name="tvk-doks"
+  fi
+  cluster_name=$(kubectl config view --minify -o jsonpath='{.clusters[].name}' | cut -d'-' -f3-)
+  if [[ -z ${cluster_name} ]];then
+    echo "Error in getting cluster name from the current-context set in kubeconfig"
+    echo "Please check the current-context"
+    return 1
+  fi
+  if ! kubectl patch svc k8s-triliovault-ingress-gateway -p '{"spec": {"type": "LoadBalancer"}}' 1>> >(logit) 2>> >(logit) ; then
+    echo "TVK UI configuration failed, please check ingress"
+    return 1
+  fi
+  echo "Configuring UI......This may take some time"
+  cmd="kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.status.loadBalancer}'"
+  wait_install 20 "$cmd"
+  val_status=$(kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.status.loadBalancer}')
+  if [[ $val_status == '{}' ]]
+  then
     echo "Loadbalancer taking time to get External IP"
-    exit 1
- fi
- external_ip=$(kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.status.loadBalancer.ingress[0].ip}' 2>> >(logit))
- kubectl patch ingress k8s-triliovault-ingress-master -p '{"spec":{"rules":[{"host":"'"${tvkhost_name}.${domain}"'"}]}}' 1>> >(logit) 2>> >(logit)
- doctl compute domain records create "${domain}" --record-type A --record-name "${tvkhost_name}" --record-data "${external_ip}" 1>> >(logit) 2>> >(logit)
- retCode=$?
- if [[ "$retCode" -ne 0 ]]; then
+    return 1
+  fi
+  external_ip=$(kubectl get svc k8s-triliovault-ingress-gateway -o 'jsonpath={.status.loadBalancer.ingress[0].ip}' 2>> >(logit))
+  kubectl patch ingress k8s-triliovault-ingress-master -p '{"spec":{"rules":[{"host":"'"${tvkhost_name}.${domain}"'"}]}}' 1>> >(logit) 2>> >(logit)
+  doctl compute domain records create "${domain}" --record-type A --record-name "${tvkhost_name}" --record-data "${external_ip}" 1>> >(logit) 2>> >(logit)
+  retCode=$?
+  if [[ "$retCode" -ne 0 ]]; then
    echo "Failed to create record, please check domain name"
-   exit 1
- fi
+   return 1
+  fi
 
- doctl kubernetes cluster kubeconfig show "${cluster_name}" > config_"${cluster_name}" 2>> >(logit)
- link="http://${tvkhost_name}.${domain}/login"
- echo "You can access TVK UI: $link"
- echo "provide config file stored at location: $PWD/config_${cluster_name}"
- echo "Info:UI may take 30 min to come up"
+  doctl kubernetes cluster kubeconfig show "${cluster_name}" > config_"${cluster_name}" 2>> >(logit)
+  link="http://${tvkhost_name}.${domain}/login"
+  echo "You can access TVK UI: $link"
+  echo "provide config file stored at location: $PWD/config_${cluster_name}"
+  echo "Info:UI may take 30 min to come up"
 }
 
 
 
-#This module is used to create target to be used for TVK backup and restore
-create_target()
+call_s3cfg_doks()
 {
-   if  [[ -z ${input_config} ]];then
-     echo -e "Target can be created on NFS or s3 compatible storage\n1.NFS(default) \n2.DOKs_S3"
-     read -r -p "select option: " target_type
-   else
-     if [[ $target_type == 'NFS' ]];then
-       target_type=1
-     elif [[ $target_type == 'DOKs_S3' ]];then
-       target_type=2
-     else
-       echo "Wrong value provided for target"
-     fi
-   fi
-   if [[ -z "$target_type" ]]; then
-      target_type=2
-   fi
-   case $target_type in
-     2)
-	yes | sudo apt-get install s3cmd 1>> >(logit) 2>> >(logit)
-	#Create s3cfg_confg file for target creation
-	cat > s3cfg_config <<- EOM
+  access_key=$1
+  secret_key=$2
+  host_base=$3
+  host_bucket=$4
+  gpg_passphrase=$5
+
+  cat > s3cfg_config <<- EOM
 [default]
-access_key = access_key
+access_key = ${access_key}
 access_token =
 add_encoding_exts =
 add_headers =
@@ -468,10 +526,10 @@ get_continue = False
 gpg_command = /usr/bin/gpg
 gpg_decrypt = %(gpg_command)s -d --verbose --no-use-agent --batch --yes --passphrase-fd %(passphrase_fd)s -o %(output_file)s %(input_file)s
 gpg_encrypt = %(gpg_command)s -c --verbose --no-use-agent --batch --yes --passphrase-fd %(passphrase_fd)s -o %(output_file)s %(input_file)s
-gpg_passphrase = trilio
+gpg_passphrase = ${gpg_passphrase}
 guess_mime_type = True
-host_base = nyc3.digitaloceanspaces.com
-host_bucket = %(bucket)s.nyc3.digitaloceanspaces.com
+host_base = ${host_base}
+host_bucket = ${host_bucket}
 human_readable_sizes = False
 invalidate_default_index_on_cf = False
 invalidate_default_index_root_on_cf = True
@@ -497,7 +555,7 @@ reduced_redundancy = False
 requester_pays = False
 restore_days = 1
 restore_priority = Standard
-secret_key = secret_key
+secret_key = ${secret_key}
 send_chunk = 65536
 server_side_encryption = False
 signature_v2 = False
@@ -517,61 +575,64 @@ website_endpoint = http://%(bucket)s.s3-website-%(location)s.amazonaws.com/
 website_error =
 website_index = index.html
 EOM
-	if  [[ -z ${input_config} ]];then
-          echo "for creation of bucket, please provide input"
-          read -r -p "Access_key: " access_key
-          read -r -p "Secret_key: " secret_key
-          read -r -p "Host Base(nyc3.digitaloceanspaces.com): " host_base
-	  read -r -p "Host Bucket(%(bucket)s.nyc3.digitaloceanspaces.com): " host_bucket
-	  read -r -p "gpg_passphrase(trilio): " gpg_passphrase
-          read -r -p "Bucket Name: " bucket_name
-          read -r -p "Target Name: " target_name
-          read -r -p "Target Namespace: " target_namespace
-	  read -r -p "thresholdCapacity(1000Gi): " thresholdCapacity
-	  read -r -p "Proceed even if resource exists(True): " if_resource_exists_still_proceed
-        fi
-	if [[ -z "$if_resource_exists_still_proceed" ]];then
-          if_resource_exists_still_proceed=True
-        fi
-	if [[ $(kubectl get target "$target_name" -n "$target_namespace" 2>> >(logit)) ]];
-        then
-	  echo "Target with same name already exists"
-	  if ! [[ $if_resource_exists_still_proceed ]]
-	  then
-	    exit 1
-	  else
-	    return 0
-          fi
-	fi
-	if [[ -z "$gpg_passphrase" ]];then
-	  gpg_passphrase="trilio"
-	fi
-	if [[ -z "$thresholdCapacity" ]];then
-	  thresholdCapacity='1000Gi'
-	fi
-        if [[ -z "$host_base" ]]; then
-          host_base="nyc3.digitaloceanspaces.com"
-        fi
-        if [[ -z "$host_bucket" ]]; then
-          host_bucket="%(bucket)s.nyc3.digitaloceanspaces.com"
-        fi
-        region="$( cut -d '.' -f 1 <<< "$host_base" )"
-        for i in access_key secret_key host_base host_bucket gpg_passphrase 
-        do
-          sed -i "s/^\($i\s*=\s*\).*$/\1${!i}/" s3cfg_config
-          sudo cp s3cfg_config "$HOME"/.s3cfg
-        done
-        #create bucket
-	ret_val=$(s3cmd mb s3://"$bucket_name" 2>> >(logit))
-        ret_code=$(echo "$ret_val" | grep 'Bucket already exists')
-	if [[ "$ret_code" ]]; then 
-          echo "WARNING: Bucket already exists"
-	else
-	  echo "$ret_val"
-        fi
-        #create S3 target
-        url="https://$host_base"
-	cat <<EOF | kubectl apply -f - 1>> >(logit) 2>> >(logit)
+}
+
+create_doks_s3()
+{
+  if  [[ -z ${input_config} ]];then
+    echo "Please go through https://docs.digitalocean.com/products/spaces/resources/s3cmd/ to know about options"
+    echo "for creation of bucket, please provide input"
+    read -r -p "Access_key: " access_key
+    read -r -p "Secret_key: " secret_key
+    read -r -p "Host Base (default - nyc3.digitaloceanspaces.com): " host_base
+    read -r -p "Host Bucket (default - %(bucket)s.nyc3.digitaloceanspaces.com): " host_bucket
+    read -r -p "gpg_passphrase (default - trilio): " gpg_passphrase
+    read -r -p "Bucket Name: " bucket_name
+    read -r -p "Target Name: " target_name
+    read -r -p "Target Namespace: " target_namespace
+    read -r -p "thresholdCapacity.(Units can be[Mi/Gi/Ti]) (default - 1000Gi): " thresholdCapacity
+    read -r -p "Proceed even if resource exists y/n (default - y): " if_resource_exists_still_proceed
+  fi
+  if [[ -z "$if_resource_exists_still_proceed" ]];then
+    if_resource_exists_still_proceed='y'
+  fi
+  if [[ $(kubectl get target "$target_name" -n "$target_namespace" 2>> >(logit)) ]];
+  then
+    echo "Target with same name already exists"
+    if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
+      exit 1
+    else
+      return 0
+    fi
+  fi
+  if [[ -z "$gpg_passphrase" ]];then
+    gpg_passphrase="trilio"
+  fi
+  if [[ -z "$thresholdCapacity" ]];then
+    thresholdCapacity='1000Gi'
+  fi
+  if [[ -z "$host_base" ]]; then
+    host_base="nyc3.digitaloceanspaces.com"
+  fi
+  if [[ -z "$host_bucket" ]]; then
+    host_bucket="%(bucket)s.nyc3.digitaloceanspaces.com"
+  fi
+  call_s3cfg_doks "$access_key" "$secret_key" "$host_base" "$host_bucket" "$gpg_passphrase"
+  region="$( cut -d '.' -f 1 <<< "$host_base" )"
+  #create bucket
+  ret_val=$(s3cmd --config s3cfg_config mb s3://"$bucket_name" 2>> >(logit))
+  ret_mgs=$?
+  if [[ $ret_mgs -ne 0 ]];then
+    ret_code=$(echo "$ret_val" | grep 'Bucket already exists')
+    if [[ "$ret_code" ]]; then
+      echo "WARNING: Bucket already exists"
+    else
+      echo "Error in creating spaces,please check credentials"
+    fi
+  fi
+  #create S3 target
+  url="https://$host_base"
+  cat <<EOF | kubectl apply -f - 1>> >(logit) 2>> >(logit)
 apiVersion: triliovault.trilio.io/v1
 kind: Target
 metadata:
@@ -588,12 +649,221 @@ spec:
     region: "$region"
   thresholdCapacity: $thresholdCapacity
 EOF
-        retcode=$?
-        if [ "$retcode" -ne 0 ];then
-          echo "Target creation failed"
-          #exit 1
-	  return
-        fi
+  retcode=$?
+  if [ "$retcode" -ne 0 ];then
+    echo "Target creation failed"
+    return 1
+  fi
+}
+
+call_s3cfg_aws()
+{
+  access_key=$1
+  secret_key=$2
+  host_base=$3
+  host_bucket=$4
+  bucket_location=$5
+  cat > s3cfg_config <<- EOM
+[default]
+access_key = ${access_key}
+access_token =
+add_encoding_exts =
+add_headers =
+bucket_location = ${bucket_location}
+cache_file =
+cloudfront_host = cloudfront.amazonaws.com
+default_mime_type = binary/octet-stream
+delay_updates = False
+delete_after = False
+delete_after_fetch = False
+delete_removed = False
+dry_run = False
+enable_multipart = True
+encoding = UTF-8
+encrypt = False
+expiry_date =
+expiry_days =
+expiry_prefix =
+follow_symlinks = False
+force = False
+get_continue = False
+gpg_command = /usr/bin/gpg
+gpg_decrypt = %(gpg_command)s -d --verbose --no-use-agent --batch --yes --passphrase-fd %(passphrase_fd)s -o %(output_file)s %(input_file)s
+gpg_encrypt = %(gpg_command)s -c --verbose --no-use-agent --batch --yes --passphrase-fd %(passphrase_fd)s -o %(output_file)s %(input_file)s
+gpg_passphrase =
+guess_mime_type = True
+host_base = ${host_base}
+host_bucket = ${host_bucket}
+human_readable_sizes = False
+ignore_failed_copy = False
+invalidate_default_index_on_cf = False
+invalidate_default_index_root_on_cf = True
+invalidate_on_cf = False
+list_md5 = False
+log_target_prefix =
+max_delete = -1
+mime_type =
+multipart_chunk_size_mb = 15
+preserve_attrs = True
+progress_meter = True
+proxy_host =
+proxy_port = 0
+put_continue = False
+recursive = False
+recv_chunk = 4096
+reduced_redundancy = False
+restore_days = 1
+secret_key = ${secret_key}
+send_chunk = 4096
+server_side_encryption = False
+simpledb_host = sdb.amazonaws.com
+skip_existing = False
+socket_timeout = 300
+urlencoding_mode = normal
+use_https = True
+use_mime_magic = True
+verbosity = WARNING
+website_endpoint = http://%(bucket)s.s3-website-% (location)s.amazonaws.com/
+website_error =
+website_index = index.html
+EOM
+}
+
+#Function to create Aws s3 target
+create_aws_s3()
+{
+  if  [[ -z ${input_config} ]];then
+    echo "Please go through https://linux.die.net/man/1/s3cmd to know about options"
+    echo "for creation of bucket, please provide input"
+    read -r -p "Access_key: " access_key
+    read -r -p "Secret_key: " secret_key
+    read -r -p "Host Base (default - s3.amazonaws.com): " host_base
+    read -r -p "Host Bucket (default - %(bucket)s.s3.amazonaws.com): " host_bucket
+    read -r -p "Bucket Location Region to create bucket in. As of now the regions are:
+                        us-east-1, us-west-1, us-west-2, eu-west-1, eu-
+                        central-1, ap-northeast-1, ap-southeast-1, ap-
+                        southeast-2, sa-east-1 (default - us-east-1): " bucket_location
+    read -r -p "Bucket Name: " bucket_name
+    read -r -p "Target Name: " target_name
+    read -r -p "Target Namespace: " target_namespace
+    read -r -p "thresholdCapacity(Units can be[Mi/Gi/Ti]) (default - 1000Gi): " thresholdCapacity
+    read -r -p "Proceed even if resource exists y/n (default - y): " if_resource_exists_still_proceed
+  fi
+  if [[ -z "$if_resource_exists_still_proceed" ]];then
+    if_resource_exists_still_proceed='y'
+  fi
+  if [[ $(kubectl get target "$target_name" -n "$target_namespace" 2>> >(logit)) ]];
+  then
+    echo "Target with same name already exists"
+    if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
+      exit 1
+    else
+      return 0
+    fi
+  fi
+  if [[ -z "$thresholdCapacity" ]];then
+    thresholdCapacity='1000Gi'
+  fi
+  if [[ -z "$host_base" ]]; then
+    host_base="s3.amazonaws.com"
+  fi
+  if [[ -z "$host_bucket" ]];then
+    host_bucket="%(bucket)s.s3.amazonaws.com"
+  fi
+  if [[ -z "$bucket_location" ]];then
+    bucket_location="us-east-1"
+  fi
+  call_s3cfg_aws "$access_key" "$secret_key" "$host_base" "$host_bucket" "$bucket_location"
+  #create bucket
+  ret_val=$(s3cmd --config s3cfg_config mb s3://"$bucket_name" 2>> >(logit))
+  ret_mgs=$?
+  if [[ "$ret_mgs" -ne 0 ]];then
+    ret_code=$(echo "$ret_val" | grep 'Bucket already exists')
+    if [[ "$ret_code" ]]; then
+      echo "WARNING: Bucket already exists"
+    else
+      echo "Error in creating bucket,please check credentials"
+      return 1
+    fi
+  fi
+  #create S3 target
+  region=$(s3cmd --config s3cfg_config info s3://"$bucket_name"/ | grep Location | cut -d':' -f2- | sed 's/^ *//g')
+  url="https://s3.amazonaws.com"
+  cat <<EOF | kubectl apply -f - 1>> >(logit) 2>> >(logit)
+apiVersion: triliovault.trilio.io/v1
+kind: Target
+metadata:
+  name: ${target_name}
+  namespace: ${target_namespace}
+spec:
+  type: ObjectStore
+  vendor: Other
+  objectStoreCredentials:
+    url: "$url"
+    accessKey: "$access_key"
+    secretKey: "$secret_key"
+    bucketName: "$bucket_name"
+    region: "$region"
+  thresholdCapacity: $thresholdCapacity
+EOF
+  retcode=$?
+  if [ "$retcode" -ne 0 ];then
+    echo "Target creation failed"
+    return 1
+  fi
+}
+
+#This module is used to create target to be used for TVK backup and restore
+create_target()
+{
+   if  [[ -z ${input_config} ]];then
+     echo -e "Target can be created on NFS or s3 compatible storage\n1.NFS(default) \n2.S3"
+     read -r -p "select option: " target_type
+   else
+     if [[ $target_type == 'NFS' ]];then
+       target_type=1
+     elif [[ $target_type == 'S3' ]];then
+       target_type=2
+     else
+       echo "Wrong value provided for target"
+     fi
+   fi
+   if [[ -z "$target_type" ]]; then
+      target_type=1
+   fi
+   case $target_type in
+     2)
+	ret=$(s3cmd --version 2>/dev/null)
+        if [[ -z $ret ]];then
+          echo "This functionality requires s3cmd utility installed"
+          echo "Please check README or follow https://s3tools.org/s3cmd"
+          return 1
+	fi
+	if  [[ -z ${input_config} ]];then
+	  echo -e "Please select vendor\n1.Digital_Ocean\n2.Amazon_AWS"
+	  read -r -p "select option: " vendor_type
+	else
+	  if [[ $vendor_type == "Digital_Ocean" ]];then
+	    vendor_type=1
+          elif [[ $vendor_type == "Amazon_AWS" ]];then
+	    vendor_type=2
+          else
+	    echo "Wrong value provided for target"
+	  fi
+	fi
+        case $vendor_type in
+	  1)
+	    create_doks_s3
+            ;;
+          2)
+	    create_aws_s3
+	    ;;
+	  *)
+            echo "Wrong selection"
+            return 1
+            ;;
+        esac
+        shift
 	;;
      1)
 	if  [[ -z ${input_config} ]];then
@@ -601,20 +871,19 @@ EOF
           read -r -p "NFSserver: " nfs_server
           read -r -p "namespace: " target_namespace
           read -r -p "Export Path: " nfs_path
-          read -r -p "NFSoption(nfsvers=4): " nfs_options
-          read -r -p "thresholdCapacity(1000Gi): " thresholdCapacity
-	  read -r -p "Proceed even if resource exists(True): " if_resource_exists_still_proceed
+          read -r -p "NFSoption (default - nfsvers=4): " nfs_options
+          read -r -p "thresholdCapacity(Units can be[Mi/Gi/Ti]) (default - 1000Gi): " thresholdCapacity
+	  read -r -p "Proceed even if resource exists y/n (default - y): " if_resource_exists_still_proceed
 	fi
         if [[ -z "$if_resource_exists_still_proceed" ]];then
-          if_resource_exists_still_proceed=True
+          if_resource_exists_still_proceed='y'
         fi
 	if [[ $(kubectl get target "$target_name" -n "$target_namespace" 2>/dev/null) ]];
         then
           echo "Target with same name already exists"
-          if ! [[ $if_resource_exists_still_proceed ]]
-          then
+	  if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
             exit 1
-          else
+	  else
             return 0
           fi
         fi
@@ -624,6 +893,7 @@ EOF
         if [[ -z "$nfs_options" ]]; then
           nfs_options='nfsvers=4'
         fi
+	set -x
 	echo "Creating target..."
 	cat <<EOF | kubectl apply -f - 1>> >(logit) 2>> >(logit)
 apiVersion: triliovault.trilio.io/v1
@@ -642,20 +912,20 @@ EOF
         retcode=$?
 	if [ "$retcode" -ne 0 ];then
 	  echo "Target creation failed"
-	  exit
+	  return 1
 	fi
 	;;
     *)
 	echo "Wrong selection"
-	exit 1
+	return 1
 	;;
     esac
     shift
    cmd="kubectl get target $target_name -n  $target_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -e Available -e Unavailable"
-   wait_install "15 minute" "$cmd"
+   wait_install 20 "$cmd"
    if ! kubectl get target "$target_name"  -n  "$target_namespace" -o 'jsonpath={.status.status}' 2>/dev/null | grep -q Available; then
      echo "Failed to create target"
-     return
+     return 1
    else
      echo "Target is Available to use"
    fi
@@ -670,13 +940,13 @@ sample_test()
      echo "Please provide input for test demo"
      read -r -p "Target Name: " target_name
      read -r -p "Target Namespace: "  target_namespace
-     read -r -p "Backupplan name(trilio-test-backup): " bk_plan_name
-     read -r -p "Backup Name(trilio-test-backup): " backup_name
-     read -r -p "Backup Namespace Name(trilio-test-backup): " backup_namespace
-     read -r -p "Proceed even if resource exists(True): " if_resource_exists_still_proceed
+     read -r -p "Backupplan name (default - trilio-test-backup): " bk_plan_name
+     read -r -p "Backup Name (default - trilio-test-backup): " backup_name
+     read -r -p "Backup Namespace Name (default - trilio-test-backup): " backup_namespace
+     read -r -p "Proceed even if resource exists y/n (default - y): " if_resource_exists_still_proceed
    fi
    if [[ -z "$if_resource_exists_still_proceed" ]];then
-      if_resource_exists_still_proceed=True
+      if_resource_exists_still_proceed='y'
    fi
    if [[ -z "$backup_namespace" ]]; then
       backup_namespace=trilio-test-backup
@@ -694,9 +964,8 @@ sample_test()
    #Add stable helm repo
    helm repo add stable https://charts.helm.sh/stable 1>> >(logit) 2>> >(logit)
    helm repo update 1>> >(logit) 2>> >(logit)
-   echo "User can take backup in multiple ways"
    if  [[ -z ${input_config} ]];then
-     echo -e "Select an the backup way\n1.Label based(MySQL)\n2.Namespace based(Wordpress)\n3.Operator based(Postgres Operator)\n4.Helm based(Mongodb)"
+     echo -e "Select an the backup way\n1.Label based(MySQL)\n2.Namespace based(Wordpress)\n3.Operator based(Mysql Operator)\n4.Helm based(Mongodb)"
      read -r -p "Select option: " backup_way
    else
      if [[ $backup_way == "Label_based" ]];then
@@ -709,8 +978,20 @@ sample_test()
        backup_way=4
      else
        echo "Backup way is wrong/not defined"
-       exit 1
+       return 1
      fi
+   fi
+   if [[ -z $backup_way ]];then
+     echo "Please provide valid backup-way..exiting.."
+     return 1
+   fi
+
+   #Check if yq is installed
+   ret=$(yq -V 2>/dev/null)
+   if [[ -z $ret ]];then
+     echo "This functionality requires yq utility installed"
+     echo "Please check README or follow https://github.com/mikefarah/yq"
+     return 1
    fi
    #Create backupplan template
    cat > backupplan.yaml <<- EOM
@@ -723,18 +1004,14 @@ spec:
   backupNamespace: trilio-test-backup
   backupConfig:
     target:
-      name: demo-target
-      namespace: default
+      name: 
+      namespace: 
     schedulePolicy:
       incrementalCron:
         schedule: "* 0 * * *"
     retentionPolicy:
       name: sample-policy
       namespace: default
-  backupPlanComponents:
-    custom:
-      - matchLabels:
-          app: mysql-qa
 EOM
    case $backup_way in
       1)
@@ -743,18 +1020,17 @@ EOM
         if helm list -n "$backup_namespace" | grep -w -q mysql-qa;
         then
           echo "Application exists"
-          if ! [[ $if_resource_exists_still_proceed ]]
-          then
+	  if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
             exit 1
-	  fi
+          fi
         else
           helm install mysql-qa stable/mysql -n $backup_namespace 1>> >(logit) 2>> >(logit)
           echo "Installing Application"
           cmd="kubectl get pods -l app=mysql-qa -n $backup_namespace 2>/dev/null | grep Running"
-          wait_install "10 minute" "$cmd"
+          wait_install 10 "$cmd"
           if ! kubectl get pods -l app=mysql-qa -n $backup_namespace 2>/dev/null | grep -q Running; then
             echo "Application installation failed"
-            exit 1
+            return 1
           fi
 	  echo "Requested application is installed successfully"
           yq eval -i 'del(.spec.backupPlanComponents)' backupplan.yaml 1>> >(logit) 2>> >(logit)
@@ -765,8 +1041,7 @@ EOM
 	if helm list -n $backup_namespace | grep -w -q my-wordpress 2>> >(logit);
 	then
 	  echo "Application exists"
-	  if ! [[ $if_resource_exists_still_proceed ]]
-          then
+	  if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
             exit 1
           fi
 	else
@@ -774,11 +1049,11 @@ EOM
 	  helm repo add bitnami https://charts.bitnami.com/bitnami 1>> >(logit) 2>> >(logit)
           helm install my-wordpress bitnami/wordpress -n $backup_namespace 1>> >(logit) 2>> >(logit)
 	  echo "Installing Application"
-	  runtime="10 minute"
+	  runtime=10
           spin='-\|/'
           i=0
-          endtime=$(date -ud "$runtime" +%s)
-	  while [[ $(date -u +%s) -le $endtime ]] && kubectl get pod -l  app.kubernetes.io/instance=my-wordpress -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
+          endtime=$(python3 -c "import time;timeout = int(time.time()) + 60*$runtime;print(\"{0}\".format(timeout))")
+	  while [[ $(python3 -c "import time;timeout = int(time.time());print(\"{0}\".format(timeout))") -le $endtime ]] && kubectl get pod -l  app.kubernetes.io/instance=my-wordpress -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
           do
             i=$(( (i+1) %4 ))
             printf "\r %s" "${spin:$i:1}"
@@ -786,7 +1061,7 @@ EOM
           done 
 	  if kubectl get pod -l  app.kubernetes.io/instance=my-wordpress -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False;then
             echo "Wordpress installation failed"
-	    exit 1
+	    return 1
 	  fi
 	  echo "Requested application is installed successfully"
 	  yq eval -i 'del(.spec.backupPlanComponents)' backupplan.yaml 1>> >(logit) 2>> >(logit)
@@ -799,14 +1074,15 @@ EOM
         errormessage=$(helm install mysql-operator presslabs/mysql-operator -n $backup_namespace 2>> >(logit))
         if echo "$errormessage"  | grep -Eq 'Error:|error:'; then
           echo "Mysql operator Installation failed with error: $errormessage"
-          exit 1
+          return 1
         fi
         echo "Installing MySQL Operator..."
-        runtime="10 minute"
+	echo "Installing Application"
+        runtime=10
         spin='-\|/'
         i=0
-        endtime=$(date -ud "$runtime" +%s)
-        while [[ $(date -u +%s) -le $endtime ]] && kubectl get pod -l app=mysql-operator -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
+        endtime=$(python3 -c "import time;timeout = int(time.time()) + 60*$runtime;print(\"{0}\".format(timeout))")
+        while [[ $(python3 -c "import time;timeout = int(time.time());print(\"{0}\".format(timeout))") -le $endtime ]] && kubectl get pod -l app=mysql-operator -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
         do
           i=$(( (i+1) %4 ))
           printf "\r %s" "${spin:$i:1}"
@@ -814,18 +1090,25 @@ EOM
         done
         if kubectl get pod -l app=mysql-operator -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False;then
           echo "MySQL operator installation failed"
-          exit 1
+          return 1
         fi
         #Create a MySQL cluster
         kubectl apply -f https://raw.githubusercontent.com/bitpoke/mysql-operator/master/examples/example-cluster-secret.yaml -n $backup_namespace 2>> >(logit)
         kubectl apply -f https://raw.githubusercontent.com/bitpoke/mysql-operator/master/examples/example-cluster.yaml -n $backup_namespace 2>> >(logit)
-        runtime="15 minute"
+	runtime=15
         spin='-\|/'
         i=0
-        endtime=$(date -ud "$runtime" +%s)
+        endtime=$(python3 -c "import time;timeout = int(time.time()) + 60*$runtime;print(\"{0}\".format(timeout))")
         echo "Installing MySQL cluster..."
         sleep 10
-        while [[ $(date -u +%s) -le $endtime ]] && kubectl get pods -l mysql.presslabs.org/cluster=my-cluster -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
+        while [[ $(python3 -c "import time;timeout = int(time.time());print(\"{0}\".format(timeout))") -le $endtime ]] && kubectl get pods -l mysql.presslabs.org/cluster=my-cluster -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
+        do
+          i=$(( (i+1) %4 ))
+          printf "\r %s" "${spin:$i:1}"
+          sleep .1
+        done
+	sleep 5
+	while [[ $(python3 -c "import time;timeout = int(time.time());print(\"{0}\".format(timeout))") -le $endtime ]] && kubectl get pods -l mysql.presslabs.org/cluster=my-cluster -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False
         do
           i=$(( (i+1) %4 ))
           printf "\r %s" "${spin:$i:1}"
@@ -833,7 +1116,7 @@ EOM
         done
         if kubectl get pods -l mysql.presslabs.org/cluster=my-cluster -n $backup_namespace  -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False;then
           echo "MySQL cluster installation failed"
-          exit 1
+          return 1
         fi
 	#Creating backupplan
 	{
@@ -851,8 +1134,7 @@ EOM
 	if helm list -n $backup_namespace | grep -q -w mongotest
         then
           echo "Application exists"
-          if ! [[ $if_resource_exists_still_proceed ]]
-          then
+	  if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
             exit 1
           fi
         else
@@ -862,19 +1144,19 @@ EOM
             helm install mongotest bitnami/mongodb -n $backup_namespace
 	  } 2>> >(logit)
 	  echo "Installing App..."
-	  runtime="15 minute"
+	  runtime=15
           spin='-\|/'
           i=0
-          endtime=$(date -ud "$runtime" +%s)
-	  while [[ $(date -u +%s) -le $endtime ]] && kubectl get pod -l app.kubernetes.io/name=mongodb -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -w False
+          endtime=$(python3 -c "import time;timeout = int(time.time()) + 60*$runtime;print(\"{0}\".format(timeout))")
+	  while [[ $(python3 -c "import time;timeout = int(time.time());print(\"{0}\".format(timeout))") -le $endtime ]] && kubectl get pod -l app.kubernetes.io/name=mongodb -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q -w False
           do
             i=$(( (i+1) %4 ))
             printf "\r %s" "${spin:$i:1}"
             sleep .1
           done
-	  if kubectl get pod -l app.kubernetes.io/name=mongodb -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].stat}" | grep -q False;then
+	  if kubectl get pod -l app.kubernetes.io/name=mongodb -n $backup_namespace -o  jsonpath="{.items[*].status.conditions[*].status}" | grep -q False;then
             echo "Mongodb installation failed"
-            exit 1
+            return 1
           fi
 	  echo "Requested application is installed successfully"
           yq eval -i 'del(.spec.backupPlanComponents)' backupplan.yaml 1>> >(logit) 2>> >(logit)
@@ -889,8 +1171,7 @@ EOM
    if [[ $(kubectl get backupplan $bk_plan_name  -n  $backup_namespace 2>/dev/null) ]];
       then
         echo "Backupplan with same name already exists"
-        if ! [[ $if_resource_exists_still_proceed ]]
-        then
+        if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
           exit 1
         fi
    else
@@ -919,17 +1200,17 @@ EOF
      retcode=$?
      if [ "$retcode" -ne 0 ];then
        echo "Erro while applying policy"
-       exit
+       return 1
      fi
      if ! kubectl apply -f backupplan.yaml -n $backup_namespace;then
           echo "Backupplan creation failed"
-          exit 1
+          return 1
      fi
      cmd="kubectl get backupplan $bk_plan_name  -n  $backup_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -e Available -e Unavailable"
-     wait_install "10 minute" "$cmd"
+     wait_install 10 "$cmd"
      if ! kubectl get backupplan $bk_plan_name  -n  $backup_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -q Available; then
        echo "Backupplan creation failed"
-       exit 1
+       return 1
      else
        echo "Backupplan is in Available state"
      fi
@@ -939,8 +1220,7 @@ EOF
    if [[ $(kubectl get backup $backup_name  -n  $backup_namespace 2>> >(logit)) ]];
       then
         echo "Backup with same name already exists"
-        if ! [[ $if_resource_exists_still_proceed ]]
-        then
+        if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
           exit 1
         fi
    else
@@ -954,7 +1234,6 @@ metadata:
   namespace: ${backup_namespace}
 spec:
   type: Full
-  scheduleType: Periodic
   backupPlan:
     name: ${bk_plan_name}
     namespace: ${backup_namespace}
@@ -962,13 +1241,13 @@ EOF
      retcode=$?
      if [ "$retcode" -ne 0 ];then
        echo "Error while creating backup"
-       exit 1
+       return 1
      fi
      cmd="kubectl get backup $backup_name -n  $backup_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -e Available -e Failed"
-     wait_install "60 minute" "$cmd"
-     if ! kubectl get backup $backup_name -n $backup_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -w Available; then
+     wait_install 60 "$cmd"
+     if ! kubectl get backup $backup_name -n $backup_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -wq Available; then
        echo "Backup Failed"
-       exit 1
+       return 1
      else
        echo "Backup is Available Now"
      fi
@@ -979,25 +1258,31 @@ EOF
    if [[ ${restore} == "Y" ]] || [[ ${restore} == "y" ]] || [[ ${restore} == "True" ]]
    then
      if  [[ -z ${input_config} ]];then
-       read -r -p "Restore Namepsace(trilio-test-rest): " restore_namespace
-       read -r -p "Restore name(trilio-test-restore): " restore_name
+       read -r -p "Restore Namepsace (default - trilio-test-rest): " restore_namespace
+       read -r -p "Restore name (default - trilio-test-restore): " restore_name
      fi
      if [[ -z "$restore_namespace" ]]; then
 	restore_namespace="trilio-test-rest"
      fi
-     if ! kubectl create ns "$restore_namespace" 1>> >(logit) 2>> >(logit) 
-     then 
-       echo "Error while creating $restore_namespace namespace"
-       exit 1
-     fi  
+     if ! kubectl get ns "$restore_namespace" 1>> >(logit) 2>> >(logit)
+     then
+       echo "Namespace with name $restore_namespace already Exists"
+       if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
+          exit 1
+       fi
+       if ! kubectl create ns "$restore_namespace" 1>> >(logit) 2>> >(logit) 
+       then 
+         echo "Error while creating $restore_namespace namespace"
+         return 1
+       fi  
+     fi
      if [[ -z "$restore_name" ]]; then
 	restore_name="trilio-test-restore"
      fi
      if [[ $(kubectl get restore $restore_name  -n  $restore_namespace 2>/dev/null) ]];
       then
         echo "Restore with same name already exists"
-        if ! [[ $if_resource_exists_still_proceed ]]
-        then
+        if [[ "$if_resource_exists_still_proceed" != "Y" ]] && [[ "$if_resource_exists_still_proceed" != "y" ]];then
           exit 1
         fi
      else
@@ -1010,8 +1295,6 @@ metadata:
   name: ${restore_name}
   namespace: ${restore_namespace}
 spec:
-  backupPlan:
-    name: ${bk_plan_name}
   source:
     type: Backup
     backup:
@@ -1026,13 +1309,13 @@ EOF
        retcode=$?
        if [ "$retcode" -ne 0 ];then
          echo "Error while restoring"
-	 exit 1
+	 return 1
        fi
        cmd="kubectl get restore $restore_name -n $restore_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -e Completed -e Failed"
-       wait_install "60 minute" "$cmd"
-       if ! kubectl get restore $restore_name -n $restore_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -w 'Completed'; then
+       wait_install 60 "$cmd"
+       if ! kubectl get restore $restore_name -n $restore_namespace -o 'jsonpath={.status.status}' 2>/dev/null | grep -wq 'Completed'; then
          echo "Restore Failed"
-         exit 1
+         return 1
        else
          echo "Restore is Completed"
        fi
@@ -1115,7 +1398,7 @@ main()
   then
     read -r -p "Please enter path for config file: " input_config
     # shellcheck source=/dev/null
-    . "$input_config"
+    . $input_config
     export input_config=$input_config
   fi
   if [[ ${PREFLIGHT} == 'True'  ]]
@@ -1145,15 +1428,18 @@ logit() {
      # shellcheck disable=SC2162
     while read
     do
-        printf "%(%Y-%m-%d %T)T %s\n" -1 "$REPLY"  >> "${LOG_FILE}"
+      time=$(python3 -c "import datetime;e = datetime.datetime.now();print(\"%s\" % e)") 
+      echo "$time $REPLY" >> "${LOG_FILE}"
+      #printf "%(%Y-%m-%d %T)T %s\n" -1 "$REPLY"  >> "${LOG_FILE}"
     done
 }
 
 LOG_FILE="/tmp/tvk_oneclick_stderr"
 
-# --- End Definitions Section ---
-# check if we are being sourced by another script or shell
-[[ "${#BASH_SOURCE[@]}" -gt "1" ]] && { return 0; }
-# --- Begin Code Execution Section ---
-
+ret=$(python3 --version 2>/dev/null)
+if [[ -z $ret ]];then
+  echo "Plugin requires python3 installed"
+  echo "Please install and check"
+  return 1
+fi
 main "$@"

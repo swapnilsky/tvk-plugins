@@ -72,6 +72,7 @@ test-preflight-integration:
 	./tests/preflight/preflight_test.sh
 
 test-tvk_oneclick-integration:
+	./tests/tvk-oneclick/create_virtual_cluster.sh
 	./tests/tvk-oneclick/tvk_oneclick_test.sh
 
 test-target-browser-integration:

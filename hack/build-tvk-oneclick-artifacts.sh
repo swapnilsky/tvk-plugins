@@ -4,7 +4,7 @@ set -euo pipefail
 
 SRC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
-# create preflight tar package
+# create tvk-oneclick tar package
 tvk_oneclick_tar_archive="tvk-oneclick.tar.gz"
 echo >&2 "Creating ${tvk_oneclick_tar_archive} archive."
 
@@ -26,7 +26,7 @@ done < <(find . -print0)
 tar -cvzf ${tvk_oneclick_tar_archive} tvk-oneclick/
 echo >&2 "Created ${tvk_oneclick_tar_archive} archive successfully"
 
-# create preflight tar sha256 file
+# create tvk-oneclick tar sha256 file
 echo >&2 "Compute sha256 of ${tvk_oneclick_tar_archive} archive."
 
 checksum_cmd="shasum -a 256"
